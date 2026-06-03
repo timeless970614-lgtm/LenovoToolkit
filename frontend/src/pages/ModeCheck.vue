@@ -36,7 +36,7 @@
             <div 
               v-for="mode in availableModes.filter(m => m.group === group.key)" 
               :key="mode.id"
-              :class="['mode-item', { 'mode-active': pinnedMode === mode.id, 'mode-current': currentMode === mode.id }]"
+              :class="['mode-item', { 'mode-active': pinnedMode === mode.id, 'mode-current': currentMode === mode.id, 'mode-selected': selectedMode === mode.id && pinnedMode !== mode.id }]"
               @click="selectMode(mode.id)"
             >
               <div class="mode-id">{{ mode.id }}</div>
@@ -1223,6 +1223,12 @@ export default {
 .mode-item.mode-active {
   border-color: var(--lenovo-red);
   background: rgba(230, 63, 50, 0.1);
+}
+
+.mode-item.mode-selected {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .mode-item.mode-current {
