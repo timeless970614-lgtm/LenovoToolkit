@@ -5,6 +5,7 @@ package backend
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -34,15 +35,26 @@ type vsFixedFileInfo struct {
 	FileDateLS       uint32
 }
 
+// Cached driver version — computed once on first call, driver version never changes at runtime
+var (
+	driverVersionOnce sync.Once
+	driverVersionVal  string
+)
+
 // getDispatcherExeVersion reads the DriverVersion of "Lenovo Dispatcher"
 // from Win32_PnPSignedDriver (matching Device Manager).
+// Result is cached after the first call.
 func getDispatcherExeVersion() string {
-	// Try WMI first (what Device Manager shows)
-	if v := getPnPDriverVersion("Lenovo Dispatcher"); v != "" {
-		return v
-	}
-	// Fallback: read FileVersion from service ImagePath
-	return getServiceExeVersion()
+	driverVersionOnce.Do(func() {
+		// Try WMI first (what Device Manager shows)
+		if v := getPnPDriverVersion("Lenovo Dispatcher"); v != "" {
+			driverVersionVal = v
+			return
+		}
+		// Fallback: read FileVersion from service ImagePath
+		driverVersionVal = getServiceExeVersion()
+	})
+	return driverVersionVal
 }
 
 // getPnPDriverVersion queries Win32_PnPSignedDriver for a device's DriverVersion.

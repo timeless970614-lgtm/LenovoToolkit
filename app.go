@@ -223,13 +223,9 @@ func (a *App) SetODV(index, value uint32) string {
 	return fmt.Sprintf("ODV set: Index=%d, Value=%d", index, value)
 }
 
-// CheckDYTCCapabilities returns device DYTC capabilities
+// CheckDYTCCapabilities returns device DYTC capabilities based on FUNC_CAP bitmap
 func (a *App) CheckDYTCCapabilities() map[string]bool {
-	return map[string]bool{
-		"BSM":  backend.CheckBSM(),
-		"GEEK": backend.CheckGEEK(),
-		"DCC":  backend.CheckDCC(),
-	}
+	return backend.GetFuncCapSupportedModes()
 }
 
 // ============ Test Mode ============
@@ -380,7 +376,7 @@ func (a *App) GetPinnedDYTCMode() string {
 }
 
 // PinDYTCMode pins the given mode (writes Policy_Override=3 + ITS_AutomaticModeSetting)
-func (a *App) PinDYTCMode(modeId string) error {
+func (a *App) PinDYTCMode(modeId string) (string, error) {
 	return backend.PinDYTCMode(modeId)
 }
 

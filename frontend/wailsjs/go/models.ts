@@ -501,6 +501,8 @@ export namespace backend {
 	    currentMode: string;
 	    aiEngineMode: string;
 	    autoMode: number;
+	    itsCurrentMode: string;
+	    itsTargetMode: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new DispatcherInfo(source);
@@ -513,6 +515,8 @@ export namespace backend {
 	        this.currentMode = source["currentMode"];
 	        this.aiEngineMode = source["aiEngineMode"];
 	        this.autoMode = source["autoMode"];
+	        this.itsCurrentMode = source["itsCurrentMode"];
+	        this.itsTargetMode = source["itsTargetMode"];
 	    }
 	}
 	export class DynamicLogResult {
@@ -1120,6 +1124,11 @@ export namespace backend {
 	    enableFuncHex: string;
 	    enableFuncPolicies: EnableFuncPolicy[];
 	    features: ModeCheckFeature[];
+	    funcCap?: number;
+	    nits?: number;
+	    itsCurrentSetting: number;
+	    itsAutoModeSetting: number;
+	    itsFanMode: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ModeCheckInfo(source);
@@ -1141,6 +1150,11 @@ export namespace backend {
 	        this.enableFuncHex = source["enableFuncHex"];
 	        this.enableFuncPolicies = this.convertValues(source["enableFuncPolicies"], EnableFuncPolicy);
 	        this.features = this.convertValues(source["features"], ModeCheckFeature);
+	        this.funcCap = source["funcCap"];
+	        this.nits = source["nits"];
+	        this.itsCurrentSetting = source["itsCurrentSetting"];
+	        this.itsAutoModeSetting = source["itsAutoModeSetting"];
+	        this.itsFanMode = source["itsFanMode"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

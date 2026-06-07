@@ -134,20 +134,29 @@
 <script>
 export default {
   name: 'Dashboard',
+  props: {
+    theme: { type: String, default: 'dark' },
+    serviceRunning: { type: Boolean, default: null }
+  },
   data() {
     return {
       sysInfo: null,
       deviceInfo: null,
-      serviceStatus: 'Unknown',
       refreshInterval: null,
       enablingLog: false,
       logEnabled: false,
 
     }
   },
+  computed: {
+    serviceStatus() {
+      if (this.serviceRunning === null) return 'Unknown'
+      return this.serviceRunning ? 'Running' : 'Stopped'
+    }
+  },
   async mounted() {
     await this.refresh()
-    this.refreshInterval = setInterval(this.refresh, 2000)
+    this.refreshInterval = setInterval(this.refresh, 30000)
   },
   beforeUnmount() {
     if (this.refreshInterval) clearInterval(this.refreshInterval)
@@ -156,15 +165,13 @@ export default {
     async refresh() {
       try {
         if (window.go && window.go.main && window.go.main.App) {
-          const [sysInfo, modeInfo, status, logStatus] = await Promise.all([
+          const [sysInfo, modeInfo, logStatus] = await Promise.all([
             window.go.main.App.GetSystemInfo(),
             window.go.main.App.GetModeCheckInfo(),
-            window.go.main.App.GetServiceStatus(),
             window.go.main.App.GetDynamicLogStatus(),
           ])
           if (sysInfo) this.sysInfo = sysInfo
           if (modeInfo) this.deviceInfo = modeInfo
-          if (status) this.serviceStatus = status
           if (logStatus !== undefined) this.logEnabled = logStatus
         }
       } catch (e) {
@@ -175,6 +182,7 @@ export default {
       try {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.StartService()
+          this.$emit('service-changed')
           await this.refresh()
         }
       } catch (e) { console.error('Start service error:', e) }
@@ -183,6 +191,7 @@ export default {
       try {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.StopService()
+          this.$emit('service-changed')
           await this.refresh()
         }
       } catch (e) { console.error('Stop service error:', e) }
@@ -191,6 +200,7 @@ export default {
       try {
         if (window.go && window.go.main && window.go.main.App) {
           await window.go.main.App.RestartService()
+          this.$emit('service-changed')
           await this.refresh()
         }
       } catch (e) { console.error('Restart service error:', e) }

@@ -24,6 +24,11 @@ type ModeCheckInfo struct {
 	EnableFuncHex      string              `json:"enableFuncHex"`
 	EnableFuncPolicies []EnableFuncPolicy  `json:"enableFuncPolicies"`
 	Features           []ModeCheckFeature   `json:"features"`
+	FuncCap            *uint32             `json:"funcCap"`
+	Nits               *uint32             `json:"nits"`
+	ITSCurrentSetting  uint32              `json:"itsCurrentSetting"`
+	ITSAutoModeSetting uint32              `json:"itsAutoModeSetting"`
+	ITSFanMode         uint32              `json:"itsFanMode"`
 }
 
 // EnableFuncPolicy represents a single policy bit
@@ -112,6 +117,17 @@ func GetModeCheckInfo() ModeCheckInfo {
 		if v, _, e := sliderKey.GetIntegerValue("Policy_EnableFunc"); e == nil {
 			info.EnableFuncValue = uint32(v)
 		}
+
+		// ITS mode settings from DTT driver
+		if v, _, e := sliderKey.GetIntegerValue("ITS_CurrentSetting"); e == nil {
+			info.ITSCurrentSetting = uint32(v)
+		}
+		if v, _, e := sliderKey.GetIntegerValue("ITS_AutomaticModeSetting"); e == nil {
+			info.ITSAutoModeSetting = uint32(v)
+		}
+		if v, _, e := sliderKey.GetIntegerValue("ITS_FanMode"); e == nil {
+			info.ITSFanMode = uint32(v)
+		}
 	} else {
 		info.DispatcherMode = "Registry unavailable"
 		info.AIEngineMode = "Unknown"
@@ -121,6 +137,20 @@ func GetModeCheckInfo() ModeCheckInfo {
 	info.EnableFuncHex = fmt.Sprintf("0x%08X", info.EnableFuncValue)
 	info.EnableFuncPolicies = parseEnableFunc(info.EnableFuncValue)
 	info.Features = buildFeatureList(info.EnableFuncValue, info.DYTCValue)
+
+	// Read FUNC_CAP and NIT_GET via DLL calls (may panic if driver unavailable)
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				// DLL call failed, leave FuncCap/Nits as nil (frontend shows N/A)
+			}
+		}()
+		fc := GetDYTCCmdFuncCap()
+		info.FuncCap = &fc
+		ni := GetDYTCCmdNITGet()
+		info.Nits = &ni
+	}()
+
 	return info
 }
 

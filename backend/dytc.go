@@ -4,6 +4,8 @@ package backend
 
 import (
 	"fmt"
+	"log"
+	"sync"
 
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
@@ -35,6 +37,84 @@ const (
 	DYTC_MODE_EPM  uint32 = 7
 	DYTC_MODE_DCC  uint32 = 13
 )
+
+// FUNC_CAP bitmap masks (bitmap = funcCapRet >> 16)
+// Values from C++ FuncAbility definitions (decimal mask values, not bit positions)
+var funcCapModeMasks = map[string]uint32{
+	"STD":  1,     // STD_MASK
+	"MYH":  8,     // MYH_MASK (Multi Yoga Hinge)
+	"STP":  16,    // STP_MASK (Skin Temperature Protection)
+	"APM":  32,    // APM_MASK (Auto Performance Mode)
+	"AQM":  64,    // AQM_MASK (Auto Quiet Mode)
+	"IEPM": 128,   // IEPM_MASK (Intelligent Extreme Performance Mode)
+	"IBSM": 256,   // IBSM_MASK (Intelligent Battery Saving Mode)
+	"CQL":  512,   // CQL_MASK (Cool Quiet on Laptop)
+	"AAA":  1024,  // AAA_MASK (Ambient Acoustic Adaptive)
+	"EPM":  2048,  // EPM_MASK
+	"MSC":  4096,  // MSC_MASK (Modern Standby Control)
+	"AIM":  8192,  // AIM_MASK
+	"DCC":  32768, // DCC_MASK
+}
+
+// funcCapCachedBitmap caches the FUNC_CAP bitmap on first read
+var (
+	funcCapOnce    sync.Once
+	funcCapBitmap  uint32
+	funcCapValid   bool
+)
+
+// getFuncCapBitmap reads and caches the FUNC_CAP bitmap (bits 16-31 of Get_DYTC_CMD_FUNC_CAP)
+func getFuncCapBitmap() (uint32, bool) {
+	funcCapOnce.Do(func() {
+		ret, _, _ := procGetDYTCCmdFuncCap.Call()
+		rawVal := uint32(ret)
+		if rawVal&1 != 0 { // bit 0 = valid
+			funcCapBitmap = rawVal >> 16
+			funcCapValid = true
+		}
+	})
+	return funcCapBitmap, funcCapValid
+}
+
+// GetFuncCapSupportedModes returns a map of DYTC mode name → supported (bool)
+// based on the FUNC_CAP bitmap from the DLL.
+func GetFuncCapSupportedModes() map[string]bool {
+	result := make(map[string]bool)
+	bitmap, valid := getFuncCapBitmap()
+	if !valid {
+		// DLL call failed or returned invalid — report nothing as supported
+		return result
+	}
+	for modeName, mask := range funcCapModeMasks {
+		result[modeName] = (bitmap & mask) != 0
+	}
+	// BSM has mask=0 (receive only) — implicitly enabled when EPM/AIM/MSC/DCC is set
+	// (per C++ source: EPM/AIM/MSC/DCC all set funcCap.bBSM = true)
+	result["BSM"] = ((bitmap & 2048) != 0) || ((bitmap & 8192) != 0) || ((bitmap & 4096) != 0) || ((bitmap & 32768) != 0)
+	// GEEK is not in FUNC_CAP bitmap — check via dedicated DLL call
+	result["GEEK"] = GetCapGEEK() != 0
+	return result
+}
+
+// IsModeSupportedByFuncCap checks if a DYTC mode is supported according to FUNC_CAP bitmap.
+// Returns (supported bool, reason string). If FUNC_CAP is unavailable, returns (true, "")
+// to allow the attempt (don't block when we can't verify).
+func IsModeSupportedByFuncCap(modeName string) (bool, string) {
+	bitmap, valid := getFuncCapBitmap()
+	if !valid {
+		// Cannot verify — allow attempt
+		return true, ""
+	}
+	mask, exists := funcCapModeMasks[modeName]
+	if !exists {
+		// Unknown mode — allow attempt
+		return true, ""
+	}
+	if bitmap&mask == 0 {
+		return false, fmt.Sprintf("本设备不支持 %s 模式 (FUNC_CAP bitmap 未设置对应位)", modeName)
+	}
+	return true, ""
+}
 
 // DYTCInfo holds all DYTC related information
 type DYTCInfo struct {
@@ -151,8 +231,44 @@ func GetCapGEEK() uint32 {
 }
 
 // SetODVMode sets ODV mode
+// For ODV index 30-33 (ODV1 group), constructs DYTC_CMD_DISPATCHERODV1_UNION:
+//   CMD_ID = 16 (bits 0-8)
+//   MASK_ODV3x = 1 (bits 12-15 depending on index)
+//   Value_ODV3x = value (4-bit fields at bits 16-31)
+// For ODV index 34-41 (ODV2 group), constructs DYTC_CMD_DISPATCHERODV2_UNION:
+//   CMD_ID = 17 (bits 0-8)
+//   MASK_ODV3x = 1 (bits 12-15 depending on index)
+//   Value_ODV3x = value (4-bit fields at bits 16-31)
 func SetODVMode(index, value uint32) error {
-	ret, _, err := procSetODVMode.Call(uintptr(index), uintptr(value))
+	var dwIoData uint32
+
+	if index >= 30 && index <= 33 {
+		// ODV1 group: CMD_ID=16
+		// bit 0-8: CMD_ID = 16
+		// bit 12: MASK_ODV30, bit 13: MASK_ODV31, bit 14: MASK_ODV32, bit 15: MASK_ODV33
+		// bit 16-19: Value_ODV30, bit 20-23: Value_ODV31, bit 24-27: Value_ODV32, bit 28-31: Value_ODV33
+		maskBit := uint32(12 + (index - 30)) // MASK bit position
+		valueShift := uint32(16 + (index-30)*4) // Value field start bit
+		dwIoData = 16 // CMD_ID = DYTC_CMD_DISPATCHERODV1
+		dwIoData |= 1 << maskBit // Set MASK bit
+		dwIoData |= (value & 0xF) << valueShift // Set Value field (4 bits)
+	} else if index >= 34 && index <= 41 {
+		// ODV2 group: CMD_ID=17
+		// bit 0-8: CMD_ID = 17
+		// bit 12: MASK_ODV34, bit 13: MASK_ODV35, bit 14: MASK_ODV36, bit 15: MASK_ODV37
+		// bit 16-19: Value_ODV34, bit 20-23: Value_ODV35, bit 24-27: Value_ODV36, bit 28-31: Value_ODV37
+		maskBit := uint32(12 + (index - 34))
+		valueShift := uint32(16 + (index-34)*4)
+		dwIoData = 17 // CMD_ID = DYTC_CMD_DISPATCHERODV2
+		dwIoData |= 1 << maskBit
+		dwIoData |= (value & 0xF) << valueShift
+	} else {
+		// Unknown index range — pass value as-is (legacy behavior)
+		dwIoData = value
+	}
+
+	log.Printf("[ODV] SetODVMode(index=%d, value=%d) -> dwIoData=0x%08X", index, value, dwIoData)
+	ret, _, err := procSetODVMode.Call(uintptr(index), uintptr(dwIoData))
 	if ret == 0 && err != nil {
 		return fmt.Errorf("SetODVMode failed: %v", err)
 	}
@@ -277,6 +393,10 @@ func SetDYTCModeByName(modeName string) (string, error) {
 		"EPM": DYTC_MODE_EPM, "DCC": DYTC_MODE_DCC,
 	}
 	if mode, ok := modes[modeName]; ok {
+		// Check FUNC_CAP bitmap — block unsupported modes
+		if supported, reason := IsModeSupportedByFuncCap(modeName); !supported {
+			return "", fmt.Errorf("%s", reason)
+		}
 		err := SetDYTCMode(mode)
 		if err != nil {
 			return "", err

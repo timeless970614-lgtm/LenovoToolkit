@@ -5,6 +5,7 @@ package backend
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -90,6 +91,12 @@ var (
 	procGlobalMemoryStatusEx = kernel32.NewProc("GlobalMemoryStatusEx")
 )
 
+// Cached values — computed once on first call, never change at runtime
+var (
+	cpuCodeNameOnce sync.Once
+	cpuCodeNameVal  string
+)
+
 // GetSystemInfo reads system information from registry + Windows API (no WMI)
 func GetSystemInfo() (SystemInfo, error) {
 	info := SystemInfo{}
@@ -110,8 +117,11 @@ func GetSystemInfo() (SystemInfo, error) {
 		info.CPUName = "N/A"
 	}
 
-	// Get Code Name from CPU model
-	info.CodeName = getCPUCodeName()
+	// Get Code Name from CPU model (cached after first call — never changes at runtime)
+	cpuCodeNameOnce.Do(func() {
+		cpuCodeNameVal = getCPUCodeName()
+	})
+	info.CodeName = cpuCodeNameVal
 
 	// BIOS version
 	k, err = registry.OpenKey(

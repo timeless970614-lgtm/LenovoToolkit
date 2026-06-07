@@ -38,10 +38,15 @@ func GetPinnedDYTCMode() string {
 // 1. Stopping the Dispatcher service (to prevent it from overriding our settings)
 // 2. Writing ITS_AutomaticModeSetting + Policy_Override=3 to registry
 // 3. Calling Set_DYTCMode DLL to actually switch the hardware mode
-func PinDYTCMode(modeId string) error {
+func PinDYTCMode(modeId string) (string, error) {
 	val, ok := modeToValue[modeId]
 	if !ok {
-		return fmt.Errorf("unknown mode: %s", modeId)
+		return "", fmt.Errorf("unknown mode: %s", modeId)
+	}
+
+	// Check FUNC_CAP bitmap — block unsupported modes
+	if supported, reason := IsModeSupportedByFuncCap(modeId); !supported {
+		return "", fmt.Errorf("%s", reason)
 	}
 
 	// Step 1: Stop Dispatcher service to prevent it from overriding our settings
@@ -60,16 +65,16 @@ func PinDYTCMode(modeId string) error {
 		registry.SET_VALUE,
 	)
 	if err != nil {
-		return fmt.Errorf("cannot open registry for write: %w", err)
+		return "", fmt.Errorf("cannot open registry for write: %w", err)
 	}
 	defer k.Close()
 
 	if err := k.SetDWordValue("ITS_AutomaticModeSetting", val); err != nil {
-		return fmt.Errorf("failed to write ITS_AutomaticModeSetting: %w", err)
+		return "", fmt.Errorf("failed to write ITS_AutomaticModeSetting: %w", err)
 	}
 	// Policy_Override = 3 -> fixed mode, Dispatcher won't auto-switch on restart
 	if err := k.SetDWordValue("Policy_Override", 3); err != nil {
-		return fmt.Errorf("failed to write Policy_Override: %w", err)
+		return "", fmt.Errorf("failed to write Policy_Override: %w", err)
 	}
 	log.Printf("[PinMode] Registry set: ITS_AutomaticModeSetting=%d, Policy_Override=3", val)
 
@@ -82,15 +87,17 @@ func PinDYTCMode(modeId string) error {
 		log.Printf("[PinMode] SetDYTCMode(%d) DLL call succeeded", val)
 	}
 
-	// Step 4: Apply ODV33=15 to lock voltage override for pinned mode
+	// Step 4: Send ODV33 (UserScenario) to DTT via DYTC CMD DISPATCHERODV1 union
+	odvMsg := ""
 	if err := SetODVMode(33, 15); err != nil {
 		log.Printf("[PinMode] Warning: SetODVMode(33, 15) failed: %v", err)
-		// Non-fatal: some devices may not support ODV
+		odvMsg = " (ODV33=UserScenario send failed)"
 	} else {
-		log.Printf("[PinMode] SetODVMode(33, 15) succeeded — voltage override locked")
+		log.Printf("[PinMode] SetODVMode(33, 15) succeeded — ODV33=UserScenario=15 sent via DISPATCHERODV1 union (0xF0008010)")
+		odvMsg = " | ODV33 UserScenario=15 sent"
 	}
 
-	return nil
+	return odvMsg, nil
 }
 
 // UnpinDYTCMode removes the pin by:
@@ -113,11 +120,11 @@ func UnpinDYTCMode() error {
 	}
 	log.Printf("[PinMode] Registry set: Policy_Override=0 (auto mode)")
 
-	// Step 2: Reset ODV33 to default (0) when unpinning
+	// Step 2: Reset ODV33 (UserScenario) to default (0) when unpinning
 	if err := SetODVMode(33, 0); err != nil {
 		log.Printf("[PinMode] Warning: SetODVMode(33, 0) reset failed: %v", err)
 	} else {
-		log.Printf("[PinMode] SetODVMode(33, 0) succeeded — voltage override reset")
+		log.Printf("[PinMode] SetODVMode(33, 0) succeeded — ODV33 UserScenario reset to 0 via DISPATCHERODV1 union (0x00008010)")
 	}
 
 	// Step 3: Start Dispatcher service so it resumes auto mode switching

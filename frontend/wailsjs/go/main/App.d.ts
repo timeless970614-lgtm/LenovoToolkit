@@ -169,7 +169,7 @@ export function OpenTestMode():Promise<Record<string, any>>;
 
 export function OpenToolkitFolder():Promise<string>;
 
-export function PinDYTCMode(arg1:string):Promise<void>;
+export function PinDYTCMode(arg1:string):Promise<string>;
 
 export function ReadLogTail(arg1:number):Promise<string>;
 

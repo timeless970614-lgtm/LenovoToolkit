@@ -14,7 +14,9 @@ type DispatcherInfo struct {
 	Description   string `json:"description"`
 	CurrentMode   string `json:"currentMode"`
 	AIEngineMode  string `json:"aiEngineMode"`
-	AutoMode      int    `json:"autoMode"`
+	AutoMode        int    `json:"autoMode"`
+	ITSCurrentMode  string `json:"itsCurrentMode"`
+	ITSTargetMode   string `json:"itsTargetMode"`
 }
 
 // dispatcherModeMap maps ITS_AutomaticModeSetting values to mode names
@@ -48,11 +50,31 @@ func GetDispatcherInfo() (DispatcherInfo, error) {
 		info.AIEngineMode = "Unknown"
 		return info, nil
 	}
-	// Use ITS_CurrentSetting (actual hardware mode) when available,
-	// fallback to ITS_AutomaticModeSetting (target mode) when CurrentSetting is 0
-	currentSetting := values["ITS_CurrentSetting"]
+	// ITS_CurrentSetting: actual hardware mode from DTT driver
+	// ITS_AutomaticModeSetting: target mode set by Dispatcher
+	itsCurrent := values["ITS_CurrentSetting"]
+	itsTarget := values["ITS_AutomaticModeSetting"]
+
+	// Populate individual ITS mode fields
+	if modeName, ok := dispatcherModeMap[itsCurrent]; ok {
+		info.ITSCurrentMode = fmt.Sprintf("%s (%d)", modeName, itsCurrent)
+	} else if itsCurrent == 0 {
+		info.ITSCurrentMode = "N/A (DTT not active)"
+	} else {
+		info.ITSCurrentMode = fmt.Sprintf("Unknown (%d)", itsCurrent)
+	}
+	if modeName, ok := dispatcherModeMap[itsTarget]; ok {
+		info.ITSTargetMode = fmt.Sprintf("%s (%d)", modeName, itsTarget)
+	} else if itsTarget == 0 {
+		info.ITSTargetMode = "N/A"
+	} else {
+		info.ITSTargetMode = fmt.Sprintf("Unknown (%d)", itsTarget)
+	}
+
+	// Use ITS_CurrentSetting when available, fallback to ITS_AutomaticModeSetting
+	currentSetting := itsCurrent
 	if currentSetting == 0 {
-		currentSetting = values["ITS_AutomaticModeSetting"]
+		currentSetting = itsTarget
 	}
 	if modeName, ok := dispatcherModeMap[currentSetting]; ok {
 		info.CurrentMode = fmt.Sprintf("%s (%d)", modeName, currentSetting)

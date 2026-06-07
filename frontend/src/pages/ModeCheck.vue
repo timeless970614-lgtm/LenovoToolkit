@@ -24,6 +24,9 @@
           <span v-else class="pin-badge auto">
             Auto
           </span>
+          <span class="current-mode-badge" v-if="currentMode && currentMode !== 'N/A'">
+            ▶ {{ currentMode }}
+          </span>
         </div>
 
         <div class="pin-description">
@@ -32,7 +35,7 @@
 
         <div v-for="group in modeGroups" :key="group.key" class="mode-group">
           <div class="mode-group-title">{{ group.name }}</div>
-          <div class="mode-grid">
+          <div class="mode-grid" :class="'mode-grid-' + group.key">
             <div 
               v-for="mode in availableModes.filter(m => m.group === group.key)" 
               :key="mode.id"
@@ -45,15 +48,15 @@
           </div>
         </div>
 
-        <div class="pin-actions">
-          <button class="btn btn-primary" @click="pinMode" :disabled="!selectedMode || pinning">
+        <div class="pin-actions-grid">
+          <button class="btn btn-primary pin-btn-full" @click="pinMode" :disabled="!selectedMode || pinning">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
             {{ pinning ? 'Fixing...' : 'Fix Mode' }}
           </button>
-          <button class="btn btn-secondary" @click="unpinMode" :disabled="!pinnedMode || pinning">
+          <button class="btn btn-secondary pin-btn-full" @click="unpinMode" :disabled="!pinnedMode || pinning">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
@@ -63,6 +66,45 @@
 
         <div v-if="pinResult" :class="['pin-result', pinResult.success ? 'success' : 'error']">
           {{ pinResult.message }}
+        </div>
+      </div>
+
+      <!-- ITS Mode Status Card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            ITS Mode Status
+          </span>
+          <span :class="['pin-badge', itsCurrentMode !== 'N/A (DTT not active)' ? 'pinned' : 'auto']">
+            {{ itsCurrentMode !== 'N/A (DTT not active)' ? itsCurrentShort : 'No DTT' }}
+          </span>
+        </div>
+
+        <div class="its-mode-grid">
+          <div class="its-mode-item">
+            <div class="its-mode-label">ITS CurrentSetting</div>
+            <div class="its-mode-desc">DTT hardware actual mode</div>
+            <div :class="['its-mode-value', itsCurrentMode === 'N/A (DTT not active)' ? 'value-na' : 'value-active']">
+              {{ itsCurrentMode }}
+            </div>
+          </div>
+          <div class="its-mode-item">
+            <div class="its-mode-label">ITS AutoModeSetting</div>
+            <div class="its-mode-desc">Dispatcher target mode</div>
+            <div :class="['its-mode-value', itsTargetMode !== 'N/A' ? 'value-active' : 'value-na']">
+              {{ itsTargetMode }}
+            </div>
+          </div>
+          <div class="its-mode-item">
+            <div class="its-mode-label">ITS FanMode</div>
+            <div class="its-mode-desc">Current fan mode</div>
+            <div class="its-mode-value">
+              {{ itsFanModeName }}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -316,7 +358,37 @@ export default {
       dttResult: null,
       advancedUnlocked: false,
       advancedPassword: '',
-      passwordError: ''
+      passwordError: '',
+      itsCurrentMode: 'N/A',
+      itsTargetMode: 'N/A',
+      itsFanMode: 0
+    }
+  },
+  computed: {
+    itsCurrentShort() {
+      const modeMap = {
+        'Battery Saving': 'BSM',
+        'Intelligent Battery Saving': 'IBSM',
+        'Intelligent Auto Quiet': 'AQM',
+        'Intelligent Stand Mode': 'STD',
+        'Intelligent Auto Performance': 'APM',
+        'Intelligent Extreme': 'IEPM',
+        'Extreme Performance': 'EPM',
+        'Yoga Tablet': 'Tablet',
+        'Yoga Tent': 'Tent',
+        'Yoga Flat': 'Flat',
+        'Geek Mode': 'GEEK',
+      }
+      // Extract mode name from 'Name (num)' format
+      const match = this.itsCurrentMode.match(/^(.+?)\s*\(/)
+      if (match) {
+        return modeMap[match[1].trim()] || match[1].trim()
+      }
+      return this.itsCurrentMode
+    },
+    itsFanModeName() {
+      const fanModes = { 0: 'Quiet', 1: 'Balanced', 2: 'Performance', 3: 'Full Speed', 4: 'Auto' }
+      return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
     }
   },
   async mounted() {
@@ -340,40 +412,35 @@ export default {
           this.info = info
           this.serviceStatus = status
           this.pinnedMode = pinned || ''
-          if (dispatcher && dispatcher.CurrentMode) {
-            // Extract mode abbreviation - handle "Name (num)" format
-            const modeMap = {
-              'Battery Saving': 'BSM',
-              'Intelligent Battery Saving': 'IBSM',
-              'Intelligent Auto Quiet': 'AQM',
-              'Intelligent Stand Mode': 'STD',
-              'Intelligent Auto Performance': 'APM',
-              'Intelligent Extreme': 'IEPM',
-              'Extreme Performance': 'EPM',
-              'Yoga Tablet': 'Tablet',
-              'Yoga Tent': 'Tent',
-              'Yoga Flat': 'Flat',
-              'Geek Mode': 'GEEK',
-            }
-            const raw = dispatcher.CurrentMode
-            // Try to match by name first
-            let matched = Object.keys(modeMap).find(k => raw.startsWith(k))
-            if (matched) {
-              this.currentMode = modeMap[matched]
-            } else {
-              // If no match, extract the number from "Name (num)" format
+          if (dispatcher) {
+            // Use AutoMode directly (ITS_CurrentSetting with fallback to ITS_AutomaticModeSetting)
+            const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
+            if (dispatcher.autoMode !== undefined && dispatcher.autoMode !== 0) {
+              this.currentMode = numToMode[dispatcher.autoMode] || ('Unknown(' + dispatcher.autoMode + ')')
+            } else if (dispatcher.currentMode) {
+              const raw = dispatcher.currentMode
               const numMatch = raw.match(/\((\d+)\)$/)
               if (numMatch) {
                 const num = parseInt(numMatch[1])
-                const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
                 this.currentMode = numToMode[num] || raw
               } else {
                 this.currentMode = raw
               }
+            } else {
+              this.currentMode = 'N/A'
             }
           } else {
-            // Even if no dispatcher info, keep showing 'N/A'
             this.currentMode = 'N/A'
+          }
+
+          // Populate ITS mode fields from dispatcher info
+          if (dispatcher) {
+            this.itsCurrentMode = dispatcher.itsCurrentMode || 'N/A (DTT not active)'
+            this.itsTargetMode = dispatcher.itsTargetMode || 'N/A'
+          }
+          // Also read ITS values from ModeCheckInfo for raw values
+          if (info) {
+            this.itsFanMode = info.itsFanMode || 0
           }
         }
       } catch (e) {
@@ -392,9 +459,9 @@ export default {
       
       // Backend handles: stop service → write registry → call DLL → set Policy_Override=3
       try {
-        await PinDYTCMode(this.selectedMode)
+        const odvMsg = await PinDYTCMode(this.selectedMode)
         this.pinnedMode = this.selectedMode
-        this.pinResult = { success: true, message: `Dispatcher stopped, Mode fixed to ${this.selectedMode} Successfully` }
+        this.pinResult = { success: true, message: `Dispatcher stopped, Mode fixed to ${this.selectedMode} Successfully${odvMsg || ''}` }
       } catch (e) {
         this.pinResult = { success: false, message: 'Failed to pin mode: ' + e }
       } finally {
@@ -424,32 +491,18 @@ export default {
         const status = await GetServiceStatus()
         this.serviceRunning = status.toLowerCase().includes('running')
         
-        // Poll current mode from dispatcher info
+        // Poll current mode from dispatcher info (ITS_AutomaticModeSetting)
         const info = await GetDispatcherInfo()
-        if (info && info.CurrentMode) {
-          // Parse and set current mode
-          const modeMap = {
-            'Battery Saving': 'BSM',
-            'Intelligent Battery Saving': 'IBSM',
-            'Intelligent Auto Quiet': 'AQM',
-            'Intelligent Stand Mode': 'STD',
-            'Intelligent Auto Performance': 'APM',
-            'Intelligent Extreme': 'IEPM',
-            'Extreme Performance': 'EPM',
-            'Yoga Tablet': 'Tablet',
-            'Yoga Tent': 'Tent',
-            'Yoga Flat': 'Flat',
-            'Geek Mode': 'GEEK',
-          }
-          const raw = info.CurrentMode
-          let matched = Object.keys(modeMap).find(k => raw.startsWith(k))
-          if (matched) {
-            this.currentMode = modeMap[matched]
-          } else {
+        if (info) {
+          // Use AutoMode directly (ITS_CurrentSetting with fallback to ITS_AutomaticModeSetting)
+          const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
+          if (info.autoMode !== undefined && info.autoMode !== 0) {
+            this.currentMode = numToMode[info.autoMode] || ('Unknown(' + info.autoMode + ')')
+          } else if (info.currentMode) {
+            const raw = info.currentMode
             const numMatch = raw.match(/\((\d+)\)$/)
             if (numMatch) {
               const num = parseInt(numMatch[1])
-              const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
               this.currentMode = numToMode[num] || raw
             } else {
               this.currentMode = raw
@@ -457,6 +510,12 @@ export default {
           }
         }
         // If no info, keep the existing currentMode value (don't change)
+
+        // Update ITS mode fields
+        if (info) {
+          this.itsCurrentMode = info.itsCurrentMode || 'N/A (DTT not active)'
+          this.itsTargetMode = info.itsTargetMode || 'N/A'
+        }
       } catch (e) {
         console.warn('Failed to poll service/mode:', e)
       }
@@ -464,7 +523,7 @@ export default {
     
     startServiceWatcher() {
       // Poll every 1 second
-      this.serviceInterval = setInterval(() => this.pollServiceAndMode(), 1000)
+      this.serviceInterval = setInterval(() => this.pollServiceAndMode(), 10000)
       // Initial poll
       this.pollServiceAndMode()
     },
@@ -537,6 +596,47 @@ export default {
 </script>
 
 <style scoped>
+
+/* ITS Mode Status Grid */
+.its-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px 0;
+}
+.its-mode-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.its-mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #a0a0a0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.its-mode-desc {
+  font-size: 11px;
+  color: var(--text-muted, #666);
+}
+.its-mode-value {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.its-mode-value.value-active {
+  color: var(--accent, #4fc3f7);
+}
+.its-mode-value.value-na {
+  color: var(--text-muted, #666);
+  font-style: italic;
+}
+
 .mode-check-page {
   padding: 8px 16px 16px;
   max-width: 1200px;
@@ -1194,6 +1294,19 @@ export default {
   background: rgba(100, 100, 100, 0.15);
   color: var(--text-secondary);
 }
+.current-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(79, 195, 247, 0.12);
+  color: var(--accent, #4fc3f7);
+  border: 1px solid rgba(79, 195, 247, 0.25);
+  margin-left: 8px;
+}
 
 .pin-description {
   margin-bottom: 16px;
@@ -1220,9 +1333,16 @@ export default {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(4, 150px);
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
+}
+
+.mode-grid-basic {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.mode-grid-intelligent {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .mode-item {
@@ -1230,23 +1350,23 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 150px;
-  height: 45px;
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-tertiary);
   cursor: pointer;
   transition: var(--transition);
+  padding: 14px 10px;
+  gap: 6px;
 }
 
 .mode-item:hover {
-  border-color: var(--lenovo-red);
-  background: rgba(230, 63, 50, 0.05);
+  border-color: var(--border-light);
+  transform: translateY(-1px);
 }
 
 .mode-item.mode-active {
   border-color: var(--lenovo-red);
-  background: rgba(230, 63, 50, 0.1);
+  background: linear-gradient(135deg, rgba(230, 63, 50, 0.1) 0%, rgba(230, 63, 50, 0.04) 100%);
 }
 
 .mode-item.mode-selected {
@@ -1260,24 +1380,28 @@ export default {
 }
 
 .mode-id {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
 }
 
 .mode-name {
   font-size: 10px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   text-align: center;
-  margin-top: 2px;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-.pin-actions {
-  display: flex;
-  gap: 12px;
+.pin-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+.pin-btn-full {
+  width: 100%;
+  padding: 12px 10px;
 }
 
 .pin-result {
@@ -1299,8 +1423,14 @@ export default {
 }
 
 @media (max-width: 800px) {
-  .mode-grid {
-    grid-template-columns: repeat(2, 150px);
+  .mode-grid-basic {
+    grid-template-columns: 1fr;
+  }
+  .mode-grid-intelligent {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pin-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

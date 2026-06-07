@@ -118,7 +118,7 @@
       </header>
       
       <div class="content-body">
-        <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" />
+        <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" :service-running="serviceRunning" @service-changed="updateMode" />
         <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
         <AIAgent v-else-if="currentPage === 'aiagent'" :theme="theme" />
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
@@ -255,7 +255,7 @@ export default {
     this.updateTime()
     this.timeInterval = setInterval(this.updateTime, 1000)
     this.updateMode()
-    this.modeInterval = setInterval(this.updateMode, 2000)
+    this.modeInterval = setInterval(this.updateMode, 30000)
   },
   beforeUnmount() {
     if (this.timeInterval) clearInterval(this.timeInterval)
@@ -281,8 +281,8 @@ export default {
           
           // Use AutoMode directly (it's the raw number from registry)
           // Note: AutoMode is now ITS_CurrentSetting (actual hardware mode), fallback to ITS_AutomaticModeSetting
-          if (info && (info.AutoMode !== undefined && info.AutoMode !== 0)) {
-            const num = info.AutoMode
+          if (info && (info.autoMode !== undefined && info.autoMode !== 0)) {
+            const num = info.autoMode
             const numToMode = { 
               1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 
               5: 'APM', 6: 'IEPM', 7: 'EPM', 

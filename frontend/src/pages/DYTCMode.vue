@@ -155,9 +155,7 @@
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-              <button class="tile-pin-btn" :class="{ pinned: pinnedMode === 'EPM' }" @click.stop="togglePin('EPM')" title="Pin this mode">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
-              </button>
+
             </div>
 
             <div 
@@ -406,7 +404,7 @@ export default {
   async mounted() {
     await this.refreshAll()
     await this.loadPinnedMode()
-    this.refreshInterval = setInterval(this.refreshStatus, 3000)
+    this.refreshInterval = setInterval(this.refreshStatus, 30000)
   },
   computed: {
     filteredFeatures() {
@@ -548,9 +546,9 @@ export default {
           this.showStatus(`${modeId} unpinned`, true)
         } else {
           // Pin this mode
-          await window.go.main.App.PinDYTCMode(modeId)
+          const odvMsg = await window.go.main.App.PinDYTCMode(modeId)
           this.pinnedMode = modeId
-          this.showStatus(`${modeId} pinned — Dispatcher will restore this mode on restart`, true)
+          this.showStatus(`${modeId} pinned — Dispatcher will restore this mode on restart${odvMsg || ''}`, true)
         }
       } catch (e) {
         this.showStatus(`Pin failed: ${e}`, false)
