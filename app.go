@@ -909,3 +909,21 @@ func (a *App) GenerateWMIMethodCode(reqJSON string) string {
 func (a *App) GenerateWMIEventCode(reqJSON string) string {
 	return backend.GenerateWMIEventCode(reqJSON)
 }
+
+// ============ Test Function - Hardware Self-Test ============
+
+// TestBrightness tests screen brightness read/write capability
+func (a *App) TestBrightness() map[string]interface{} {
+	return backend.TestBrightness()
+}
+
+// TestFNQ checks FN+Q hotkey support and availability
+func (a *App) TestFNQ() map[string]interface{} {
+	return backend.TestFNQ()
+}
+
+// TestModeSwitch attempts to cycle through available DYTC modes
+func (a *App) TestModeSwitch() map[string]interface{} {
+	return backend.TestModeSwitch()
+}
+

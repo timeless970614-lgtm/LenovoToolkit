@@ -462,8 +462,20 @@ export function StopService() {
   return window['go']['main']['App']['StopService']();
 }
 
+export function TestBrightness() {
+  return window['go']['main']['App']['TestBrightness']();
+}
+
+export function TestFNQ() {
+  return window['go']['main']['App']['TestFNQ']();
+}
+
 export function TestIntelGPUFrequency(arg1) {
   return window['go']['main']['App']['TestIntelGPUFrequency'](arg1);
+}
+
+export function TestModeSwitch() {
+  return window['go']['main']['App']['TestModeSwitch']();
 }
 
 export function TestNVIDIAConnection(arg1, arg2) {

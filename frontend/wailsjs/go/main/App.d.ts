@@ -233,7 +233,13 @@ export function StopNPUScheduler():Promise<void>;
 
 export function StopService():Promise<string>;
 
+export function TestBrightness():Promise<Record<string, any>>;
+
+export function TestFNQ():Promise<Record<string, any>>;
+
 export function TestIntelGPUFrequency(arg1:string):Promise<backend.IntelGPUFreqTestResult>;
+
+export function TestModeSwitch():Promise<Record<string, any>>;
 
 export function TestNVIDIAConnection(arg1:string,arg2:string):Promise<string>;
 

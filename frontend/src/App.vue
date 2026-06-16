@@ -119,9 +119,9 @@
       
       <div class="content-body">
         <Dashboard v-if="currentPage === 'dashboard'" :theme="theme" :service-running="serviceRunning" :poll-interval="refreshInterval" @service-changed="updateMode" />
-        <PPMDriver v-else-if="currentPage === 'ppm'" :theme="theme" />
         <AIAgent v-else-if="currentPage === 'aiagent'" :theme="theme" />
         <FunctionCheck v-else-if="currentPage === 'funccheck'" :theme="theme" />
+        <TestFunction v-else-if="currentPage === 'testfunc'" :theme="theme" />
         <ModeCheck v-else-if="currentPage === 'modecheck'" :theme="theme" :poll-interval="refreshInterval" />
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
         <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" :poll-interval="refreshInterval" @update:theme="setTheme" @update:lang="setLang" @update:poll-interval="setRefreshInterval" />
@@ -133,9 +133,9 @@
 
 <script>
 import Dashboard from './pages/Dashboard.vue'
-import PPMDriver from './pages/PPMDriver.vue'
 import AIAgent from './pages/AIAgent.vue'
 import FunctionCheck from './pages/FunctionCheck.vue'
+import TestFunction from './pages/TestFunction.vue'
 import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
 import Settings from './pages/Settings.vue'
@@ -146,9 +146,9 @@ export default {
   name: 'App',
   components: {
     Dashboard,
-    PPMDriver,
     AIAgent,
     FunctionCheck,
+    TestFunction,
     ModeCheck,
     AIAnalysis,
     Settings,
@@ -185,17 +185,17 @@ export default {
           subtitle: 'Dispatcher status & features',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'
         },
-        { 
-          id: 'funccheck', 
-          label: 'Function Check', 
+        {
+          id: 'funccheck',
+          label: 'Function Check',
           subtitle: 'GPU & system diagnostics',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
         },
         {
-          id: 'ppm',
-          label: 'PPM Driver',
-          subtitle: 'Processor power management',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>'
+          id: 'testfunc',
+          label: 'Test Function',
+          subtitle: 'Hardware self-test & diagnostics',
+          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
         },
         {
           id: 'aianalysis',
