@@ -1006,3 +1006,20 @@ func (a *App) OpenEventViewer() {
 	exec.Command("eventvwr.exe", "/c:System").Start()
 }
 
+// ============ Dispdiag ============
+
+// RunDispdiag runs Windows dispdiag.exe display diagnostic tool
+func (a *App) RunDispdiag(outDir string, delaySecs int, dumpMode bool) backend.DispdiagResult {
+	return backend.RunDispdiag(outDir, delaySecs, dumpMode)
+}
+
+// GetDispdiagOutputDir returns the default dispdiag output directory
+func (a *App) GetDispdiagOutputDir() string {
+	return backend.GetDispdiagOutputDir()
+}
+
+// ExportDispdiagResult exports dispdiag analysis as JSON
+func (a *App) ExportDispdiagResult(result backend.DispdiagResult, outputPath string) string {
+	return backend.ExportDispdiagResult(result, outputPath)
+}
+

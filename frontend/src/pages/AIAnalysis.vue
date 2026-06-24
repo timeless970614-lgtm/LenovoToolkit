@@ -292,6 +292,158 @@
         </div>
       </div>
 
+      <!-- Capture Dispdiag Log -->
+      <div class="card dispdiag-card">
+        <div class="card-header">
+          <span class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            Capture Dispdiag Log
+          </span>
+          <span v-if="dispdiagResult" class="capture-badge" style="background: rgba(76,175,80,0.1); color:#4CAF50; border-color:rgba(76,175,80,0.2);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+            Captured
+          </span>
+        </div>
+        <div class="dispdiag-body">
+          <p class="dispdiag-hint">Capture Windows display diagnostic data — EDID, link training status, brightness info, and driver details via <code>dispdiag.exe</code>.</p>
+          <div class="dispdiag-controls">
+            <div class="dispdiag-options">
+              <label class="dispdiag-opt">
+                <input type="checkbox" v-model="dispdiagDump" /> Dump mode (-d)
+              </label>
+              <label class="dispdiag-opt">
+                Delay: <input type="number" v-model.number="dispdiagDelay" min="0" max="30" class="delay-input" />s
+              </label>
+            </div>
+            <button class="btn-capture-dispdiag" @click="captureDispdiag" :disabled="capturingDispdiag">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: capturingDispdiag }">
+                <circle v-if="capturingDispdiag" cx="12" cy="12" r="10"/>
+                <path v-if="capturingDispdiag" d="M12 6v6l4 2"/>
+                <polyline v-else points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              {{ capturingDispdiag ? 'Running dispdiag...' : 'Run Dispdiag' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Dispdiag Results -->
+        <div v-if="dispdiagResult" class="dispdiag-results">
+          <!-- Info Bar -->
+          <div class="dispdiag-info-bar">
+            <div class="dispdiag-info-item">
+              <span class="info-label">File:</span>
+              <code class="info-value">{{ dispdiagResult.fileName }}</code>
+            </div>
+            <div class="dispdiag-info-item">
+              <span class="info-label">Size:</span>
+              <span class="info-value">{{ dispdiagResult.outputSize }}</span>
+            </div>
+            <div class="dispdiag-info-item">
+              <span class="info-label">Duration:</span>
+              <span class="info-value">{{ dispdiagResult.durationSecs }}s</span>
+            </div>
+            <div class="dispdiag-info-item">
+              <span class="info-label">Pass/Fail:</span>
+              <span v-if="!dispdiagResult.errors || !dispdiagResult.errors.length" class="pass-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                PASS
+              </span>
+              <span v-else class="fail-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F44336" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                FAIL
+              </span>
+            </div>
+            <div class="dispdiag-info-item">
+              <span class="info-label">EDID Blocks:</span>
+              <span class="info-value" style="color:var(--lenovo-red);font-weight:700">{{ dispdiagResult.edidBlocks }}</span>
+            </div>
+          </div>
+
+          <!-- Errors -->
+          <div v-if="dispdiagResult.errors && dispdiagResult.errors.length" class="dispdiag-errors">
+            <div class="sub-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F44336" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              Key Failures / Errors
+            </div>
+            <ul class="error-list">
+              <li v-for="(err, i) in dispdiagResult.errors.slice(0, 15)" :key="i">{{ err }}</li>
+            </ul>
+          </div>
+
+          <!-- Warnings -->
+          <div v-if="dispdiagResult.warnings && dispdiagResult.warnings.length" class="dispdiag-warnings">
+            <div class="sub-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF9800" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Warnings
+            </div>
+            <ul class="warn-list">
+              <li v-for="(w, i) in dispdiagResult.warnings.slice(0, 10)" :key="i">{{ w }}</li>
+            </ul>
+          </div>
+
+          <!-- Summary -->
+          <div v-if="dispdiagResult.summary" class="dispdiag-summary">
+            <div class="sub-title">Summary</div>
+            <div class="summary-grid">
+              <div class="summary-row" v-if="dispdiagResult.summary.driverVersion">
+                <span class="grid-key">Driver</span>
+                <code class="grid-val">{{ dispdiagResult.summary.driverVersion }}</code>
+              </div>
+              <div class="summary-row" v-if="dispdiagResult.summary.buildVersion">
+                <span class="grid-key">Build</span>
+                <code class="grid-val">{{ dispdiagResult.summary.buildVersion }}</code>
+              </div>
+              <div class="summary-row" v-if="dispdiagResult.summary.datVersion">
+                <span class="grid-key">Dat Version</span>
+                <code class="grid-val">{{ dispdiagResult.summary.datVersion }}</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Brightness Info -->
+          <div v-if="dispdiagResult.brightnessInfo && dispdiagResult.brightnessInfo.length" class="dispdiag-brightness">
+            <div class="sub-title">Brightness Info</div>
+            <div class="brightness-list">
+              <code v-for="(b, i) in dispdiagResult.brightnessInfo.slice(0, 10)" :key="i" class="brightness-line">{{ b }}</code>
+            </div>
+          </div>
+
+          <!-- Raw Content Preview -->
+          <div v-if="dispdiagResult.fileContent" class="dispdiag-content">
+            <div class="sub-title">Raw Output Preview</div>
+            <pre class="dispdiag-preview">{{ dispdiagResult.fileContent.substring(0, 2000) }}
+{{ dispdiagResult.fileContent.length > 2000 ? '...(truncated)' : '' }}</pre>
+          </div>
+
+          <!-- Actions -->
+          <div class="dispdiag-actions">
+            <button class="btn-dispdiag-action" @click="openDispdiagFolder">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Open Output Folder
+            </button>
+            <button v-if="dispdiagResult.outputPath" class="btn-dispdiag-action" @click="exportDispdiagJSON">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export JSON
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Analysis Results -->
       <div v-if="analysisResult" class="analysis-results">
 
@@ -928,6 +1080,11 @@ export default {
       selectedEventLogPreset: 'Last 24h',
       capturingEventLog: false,
       eventLogResult: null,
+      // Dispdiag
+      dispdiagDump: false,
+      dispdiagDelay: 0,
+      capturingDispdiag: false,
+      dispdiagResult: null,
       // Toolkit
       toolkitTools: [],
       toolkitInstallDir: 'C:\\LenovoDispatcherToolkit\\Tools',
@@ -1082,6 +1239,36 @@ export default {
       try {
         if (window.go?.main?.App) {
           window.go.main.App.OpenEventViewer()
+        }
+      } catch (e) { console.error(e) }
+    },
+    // ============ Dispdiag ============
+    async captureDispdiag() {
+      this.capturingDispdiag = true
+      this.dispdiagResult = null
+      try {
+        if (window.go?.main?.App) {
+          this.dispdiagResult = await window.go.main.App.RunDispdiag('', this.dispdiagDelay, this.dispdiagDump)
+        }
+      } catch (e) {
+        console.error(e)
+        this.dispdiagResult = { errors: [e.message || String(e)], summary: {} }
+      } finally {
+        this.capturingDispdiag = false
+      }
+    },
+    async openDispdiagFolder() {
+      try {
+        if (window.go?.main?.App) {
+          const dir = await window.go.main.App.GetDispdiagOutputDir()
+          await OpenFolder(dir)
+        }
+      } catch (e) { console.error(e) }
+    },
+    async exportDispdiagJSON() {
+      try {
+        if (window.go?.main?.App) {
+          await window.go.main.App.ExportDispdiagResult(this.dispdiagResult, '')
         }
       } catch (e) { console.error(e) }
     },
@@ -1463,6 +1650,98 @@ export default {
 }
 .provider-name { color: var(--text-primary); font-family: 'Consolas','Monaco',monospace; }
 .provider-count { color: var(--lenovo-red); font-weight: 700; }
+
+/* ===== Dispdiag Capture ===== */
+.dispdiag-card { border: 1px dashed rgba(33,150,243,0.3); }
+.dispdiag-body { padding: 16px 20px; }
+.dispdiag-hint { margin: 0 0 12px 0; font-size: 12px; color: var(--text-tertiary); }
+.dispdiag-hint code { background: var(--bg-tertiary); padding: 1px 5px; border-radius: 3px; font-size: 11px; color: var(--lenovo-red); }
+.dispdiag-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.dispdiag-options { display: flex; align-items: center; gap: 16px; }
+.dispdiag-opt {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary);
+  cursor: pointer; user-select: none;
+}
+.dispdiag-opt input[type="checkbox"] { accent-color: var(--lenovo-red); cursor: pointer; }
+.delay-input {
+  width: 42px; background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: 4px; color: var(--text-primary); padding: 2px 4px; font-size: 12px;
+  font-family: 'Consolas','Monaco',monospace; text-align: center;
+}
+.btn-capture-dispdiag {
+  padding: 8px 16px; border-radius: 8px; color: white; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); font-family: inherit;
+  background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%);
+  border: none;
+}
+.btn-capture-dispdiag:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-capture-dispdiag:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dispdiag-results { padding: 0 20px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.dispdiag-info-bar {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+  padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+.dispdiag-info-item { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+.info-label { color: var(--text-tertiary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; }
+.info-value { color: var(--text-primary); font-size: 12px; }
+.info-value code { font-family: 'Consolas','Monaco',monospace; font-size: 11px; }
+.pass-badge {
+  display: flex; align-items: center; gap: 4px; color: #4CAF50; font-weight: 700;
+  font-size: 12px; background: rgba(76,175,80,0.1); padding: 2px 8px; border-radius: 4px;
+}
+.fail-badge {
+  display: flex; align-items: center; gap: 4px; color: #F44336; font-weight: 700;
+  font-size: 12px; background: rgba(244,67,54,0.1); padding: 2px 8px; border-radius: 4px;
+}
+
+.sub-title {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700;
+  color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dispdiag-errors { }
+.error-list, .warn-list {
+  margin: 0; padding: 0 0 0 18px; font-size: 11px; color: var(--text-secondary);
+  max-height: 200px; overflow-y: auto;
+}
+.error-list li { color: #F44336; margin-bottom: 2px; font-family: 'Consolas','Monaco',monospace; }
+.warn-list li { color: #FF9800; margin-bottom: 2px; font-family: 'Consolas','Monaco',monospace; }
+
+.dispdiag-summary { }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.summary-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+  background: var(--bg-tertiary); border: 1px solid var(--border-color);
+  border-radius: 5px;
+}
+.grid-key { color: var(--text-tertiary); font-size: 10px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+.grid-val { color: var(--text-primary); font-family: 'Consolas','Monaco',monospace; font-size: 11px; }
+
+.dispdiag-brightness { }
+.brightness-list { display: flex; flex-direction: column; gap: 3px; }
+.brightness-line {
+  display: block; padding: 4px 8px; background: var(--bg-tertiary); border-radius: 4px;
+  font-size: 11px; color: var(--text-secondary); font-family: 'Consolas','Monaco',monospace;
+}
+
+.dispdiag-content { }
+.dispdiag-preview {
+  margin: 0; padding: 10px 12px; background: #1a1a2e; border-radius: 6px;
+  border: 1px solid var(--border-color); font-size: 10px; line-height: 1.4;
+  color: #a0a0b0; font-family: 'Consolas','Monaco',monospace;
+  max-height: 250px; overflow: auto; white-space: pre-wrap; word-break: break-all;
+}
+
+.dispdiag-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-dispdiag-action {
+  padding: 8px 14px; border: 1px solid var(--border-color); border-radius: 8px;
+  background: var(--bg-tertiary); color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); font-family: inherit;
+}
+.btn-dispdiag-action:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--lenovo-red); }
 
 /* ===== Progress Steps ===== */
 .step-list { display: flex; flex-direction: column; gap: 6px; }

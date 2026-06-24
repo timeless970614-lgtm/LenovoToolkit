@@ -82,6 +82,10 @@ export function EnumerateGPUs() {
   return window['go']['main']['App']['EnumerateGPUs']();
 }
 
+export function ExportDispdiagResult(arg1, arg2) {
+  return window['go']['main']['App']['ExportDispdiagResult'](arg1, arg2);
+}
+
 export function ExportSystemEventLog(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportSystemEventLog'](arg1, arg2, arg3);
 }
@@ -128,6 +132,10 @@ export function GetDYTCInfo() {
 
 export function GetDispatcherInfo() {
   return window['go']['main']['App']['GetDispatcherInfo']();
+}
+
+export function GetDispdiagOutputDir() {
+  return window['go']['main']['App']['GetDispdiagOutputDir']();
 }
 
 export function GetDynamicDumpStatus() {
@@ -408,6 +416,10 @@ export function RestartService() {
 
 export function RestoreDefaults() {
   return window['go']['main']['App']['RestoreDefaults']();
+}
+
+export function RunDispdiag(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RunDispdiag'](arg1, arg2, arg3);
 }
 
 export function RunToolkitTool(arg1) {

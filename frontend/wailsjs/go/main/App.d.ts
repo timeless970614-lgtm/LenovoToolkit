@@ -43,6 +43,8 @@ export function EnumerateGPUProcesses():Promise<Array<backend.GPUProcess>>;
 
 export function EnumerateGPUs():Promise<Array<backend.GPUInfo>>;
 
+export function ExportDispdiagResult(arg1:backend.DispdiagResult,arg2:string):Promise<string>;
+
 export function ExportSystemEventLog(arg1:string,arg2:number,arg3:number):Promise<string>;
 
 export function GenerateWMIEventCode(arg1:string):Promise<string>;
@@ -66,6 +68,8 @@ export function GetClassesInNamespace(arg1:string):Promise<string>;
 export function GetDYTCInfo():Promise<backend.DYTCInfo>;
 
 export function GetDispatcherInfo():Promise<backend.DispatcherInfo>;
+
+export function GetDispdiagOutputDir():Promise<string>;
 
 export function GetDynamicDumpStatus():Promise<boolean>;
 
@@ -206,6 +210,8 @@ export function ResetNPUDefaults(arg1:number):Promise<backend.NPUPowerAction>;
 export function RestartService():Promise<string>;
 
 export function RestoreDefaults():Promise<string>;
+
+export function RunDispdiag(arg1:string,arg2:number,arg3:boolean):Promise<backend.DispdiagResult>;
 
 export function RunToolkitTool(arg1:string):Promise<string>;
 

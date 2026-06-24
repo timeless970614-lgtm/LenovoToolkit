@@ -769,6 +769,123 @@ export namespace backend {
 	        this.itsTargetMode = source["itsTargetMode"];
 	    }
 	}
+	export class DispdiagDisplay {
+	    name: string;
+	    location: string;
+	    edid: string;
+	    connected: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new DispdiagDisplay(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.location = source["location"];
+	        this.edid = source["edid"];
+	        this.connected = source["connected"];
+	    }
+	}
+	export class DispdiagLinkStatus {
+	    display: string;
+	    status: string;
+	    src: string;
+	    dest: string;
+	    resolution: string;
+	    refreshRate: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DispdiagLinkStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.display = source["display"];
+	        this.status = source["status"];
+	        this.src = source["src"];
+	        this.dest = source["dest"];
+	        this.resolution = source["resolution"];
+	        this.refreshRate = source["refreshRate"];
+	    }
+	}
+	export class DispdiagSummary {
+	    driverVersion: string;
+	    buildVersion: string;
+	    datVersion: string;
+	    captureDate: string;
+	    passFail: string;
+	    keyMessages: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DispdiagSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.driverVersion = source["driverVersion"];
+	        this.buildVersion = source["buildVersion"];
+	        this.datVersion = source["datVersion"];
+	        this.captureDate = source["captureDate"];
+	        this.passFail = source["passFail"];
+	        this.keyMessages = source["keyMessages"];
+	    }
+	}
+	export class DispdiagResult {
+	    outputPath: string;
+	    outputSize: string;
+	    capturedAt: string;
+	    durationSecs: number;
+	    fileName: string;
+	    fileContent: string;
+	    summary: DispdiagSummary;
+	    edidBlocks: number;
+	    displays: DispdiagDisplay[];
+	    linkTraining: DispdiagLinkStatus[];
+	    brightnessInfo: string[];
+	    errors: string[];
+	    warnings: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DispdiagResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.outputPath = source["outputPath"];
+	        this.outputSize = source["outputSize"];
+	        this.capturedAt = source["capturedAt"];
+	        this.durationSecs = source["durationSecs"];
+	        this.fileName = source["fileName"];
+	        this.fileContent = source["fileContent"];
+	        this.summary = this.convertValues(source["summary"], DispdiagSummary);
+	        this.edidBlocks = source["edidBlocks"];
+	        this.displays = this.convertValues(source["displays"], DispdiagDisplay);
+	        this.linkTraining = this.convertValues(source["linkTraining"], DispdiagLinkStatus);
+	        this.brightnessInfo = source["brightnessInfo"];
+	        this.errors = source["errors"];
+	        this.warnings = source["warnings"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class DynamicLogResult {
 	    success: boolean;
 	    message: string;
