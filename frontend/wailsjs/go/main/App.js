@@ -370,6 +370,10 @@ export function OpenETLInWPA(arg1) {
   return window['go']['main']['App']['OpenETLInWPA'](arg1);
 }
 
+export function OpenEventViewer() {
+  return window['go']['main']['App']['OpenEventViewer']();
+}
+
 export function OpenFolder(arg1) {
   return window['go']['main']['App']['OpenFolder'](arg1);
 }

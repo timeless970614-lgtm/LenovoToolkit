@@ -202,6 +202,14 @@
               </svg>
               {{ capturingEventLog ? 'Capturing...' : 'Capture Event Log' }}
             </button>
+            <button class="btn-open-eventviewer" @click="openEventViewer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+              </svg>
+              Open Event Log
+            </button>
             <button v-if="eventLogResult" class="btn-export-eventlog" @click="exportEventLog">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1070,6 +1078,13 @@ export default {
       const m = ts.match(/(\d{4}-\d{2}-\d{2}\s?T?\d{2}:\d{2}:\d{2})/)
       return m ? m[1].replace('T', ' ') : ts.substring(0, 19)
     },
+    openEventViewer() {
+      try {
+        if (window.go?.main?.App) {
+          window.go.main.App.OpenEventViewer()
+        }
+      } catch (e) { console.error(e) }
+    },
     async loadLogs() {
       try {
         if (window.go?.main?.App) this.logFiles = await window.go.main.App.GetLogFiles() || []
@@ -1382,6 +1397,13 @@ export default {
   transition: var(--transition); font-family: inherit;
 }
 .btn-export-eventlog:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--border-light); }
+.btn-open-eventviewer {
+  padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 8px;
+  background: var(--bg-tertiary); color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: var(--transition); font-family: inherit;
+}
+.btn-open-eventviewer:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--lenovo-red); }
 
 .event-log-results { padding: 0 20px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
 .event-log-summary {

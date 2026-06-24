@@ -187,6 +187,8 @@ export function OpenETLFileDialog():Promise<string>;
 
 export function OpenETLInWPA(arg1:string):Promise<string>;
 
+export function OpenEventViewer():Promise<void>;
+
 export function OpenFolder(arg1:string):Promise<void>;
 
 export function OpenTestMode():Promise<Record<string, any>>;

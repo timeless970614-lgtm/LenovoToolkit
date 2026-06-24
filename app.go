@@ -1001,3 +1001,8 @@ func (a *App) ExportSystemEventLog(outputPath string, hoursBack int, maxEvents i
 	return backend.ExportSystemEventLog(outputPath, hoursBack, maxEvents)
 }
 
+// OpenEventViewer launches Windows Event Viewer at the System log
+func (a *App) OpenEventViewer() {
+	exec.Command("eventvwr.exe", "/c:System").Start()
+}
+
