@@ -45,6 +45,8 @@ export function EnumerateGPUs():Promise<Array<backend.GPUInfo>>;
 
 export function ExportDispdiagResult(arg1:backend.DispdiagResult,arg2:string):Promise<string>;
 
+export function ExportEVTXToCSV(arg1:string,arg2:string):Promise<string>;
+
 export function ExportSystemEventLog(arg1:string,arg2:number,arg3:number):Promise<string>;
 
 export function GenerateWMIEventCode(arg1:string):Promise<string>;
@@ -82,6 +84,8 @@ export function GetETLCaptureStatus():Promise<backend.ETLCaptureState>;
 export function GetETLProfiles():Promise<Array<backend.ETLProfile>>;
 
 export function GetETLTraceList():Promise<Array<backend.ETLTraceInfo>>;
+
+export function GetEVTXEventsByLevel(arg1:string,arg2:string,arg3:number):Promise<Array<backend.EventLogEntry>>;
 
 export function GetEventClasses():Promise<string>;
 
@@ -181,15 +185,21 @@ export function LaunchAllEnabledItems():Promise<Array<backend.AutoLaunchResult>>
 
 export function LaunchAutoLaunchItem(arg1:string):Promise<backend.AutoLaunchResult>;
 
+export function LoadEVTXFile(arg1:string):Promise<backend.EventLogSummary>;
+
 export function LoadNVIDIAConfig():Promise<backend.NVIDIAAPIConfig>;
 
 export function NPUGetDVFSMode(arg1:number):Promise<string>;
 
 export function NPUSetDVFSMode(arg1:number,arg2:string):Promise<string>;
 
+export function OpenDispdiagLog():Promise<string>;
+
 export function OpenETLFileDialog():Promise<string>;
 
 export function OpenETLInWPA(arg1:string):Promise<string>;
+
+export function OpenEVTXFileDialog():Promise<string>;
 
 export function OpenEventViewer():Promise<void>;
 

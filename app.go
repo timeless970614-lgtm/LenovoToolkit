@@ -1006,6 +1006,35 @@ func (a *App) OpenEventViewer() {
 	exec.Command("eventvwr.exe", "/c:System").Start()
 }
 
+// OpenEVTXFileDialog opens a native file dialog for selecting .evtx files
+func (a *App) OpenEVTXFileDialog() string {
+	file, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Choose an Event Log File",
+		Filters: []runtime.FileFilter{
+			{DisplayName: "Event Log Files", Pattern: "*.evtx"},
+		},
+	})
+	if err != nil {
+		return ""
+	}
+	return file
+}
+
+// LoadEVTXFile parses an .evtx file and returns EventLogSummary
+func (a *App) LoadEVTXFile(evtxPath string) backend.EventLogSummary {
+	return backend.LoadEVTXFile(evtxPath)
+}
+
+// ExportEVTXToCSV converts an .evtx file to CSV
+func (a *App) ExportEVTXToCSV(evtxPath string, outputPath string) string {
+	return backend.ExportEVTXToCSV(evtxPath, outputPath)
+}
+
+// GetEVTXEventsByLevel returns events from an .evtx file filtered by level
+func (a *App) GetEVTXEventsByLevel(evtxPath string, level string, maxEvents int) []backend.EventLogEntry {
+	return backend.GetEVTXEventsByLevel(evtxPath, level, maxEvents)
+}
+
 // ============ Dispdiag ============
 
 // RunDispdiag runs Windows dispdiag.exe display diagnostic tool
@@ -1021,5 +1050,10 @@ func (a *App) GetDispdiagOutputDir() string {
 // ExportDispdiagResult exports dispdiag analysis as JSON
 func (a *App) ExportDispdiagResult(result backend.DispdiagResult, outputPath string) string {
 	return backend.ExportDispdiagResult(result, outputPath)
+}
+
+// OpenDispdiagLog opens the latest dispdiag log file with the default program
+func (a *App) OpenDispdiagLog() string {
+	return backend.OpenDispdiagLog()
 }
 

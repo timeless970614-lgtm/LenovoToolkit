@@ -86,6 +86,10 @@ export function ExportDispdiagResult(arg1, arg2) {
   return window['go']['main']['App']['ExportDispdiagResult'](arg1, arg2);
 }
 
+export function ExportEVTXToCSV(arg1, arg2) {
+  return window['go']['main']['App']['ExportEVTXToCSV'](arg1, arg2);
+}
+
 export function ExportSystemEventLog(arg1, arg2, arg3) {
   return window['go']['main']['App']['ExportSystemEventLog'](arg1, arg2, arg3);
 }
@@ -160,6 +164,10 @@ export function GetETLProfiles() {
 
 export function GetETLTraceList() {
   return window['go']['main']['App']['GetETLTraceList']();
+}
+
+export function GetEVTXEventsByLevel(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetEVTXEventsByLevel'](arg1, arg2, arg3);
 }
 
 export function GetEventClasses() {
@@ -358,6 +366,10 @@ export function LaunchAutoLaunchItem(arg1) {
   return window['go']['main']['App']['LaunchAutoLaunchItem'](arg1);
 }
 
+export function LoadEVTXFile(arg1) {
+  return window['go']['main']['App']['LoadEVTXFile'](arg1);
+}
+
 export function LoadNVIDIAConfig() {
   return window['go']['main']['App']['LoadNVIDIAConfig']();
 }
@@ -370,12 +382,20 @@ export function NPUSetDVFSMode(arg1, arg2) {
   return window['go']['main']['App']['NPUSetDVFSMode'](arg1, arg2);
 }
 
+export function OpenDispdiagLog() {
+  return window['go']['main']['App']['OpenDispdiagLog']();
+}
+
 export function OpenETLFileDialog() {
   return window['go']['main']['App']['OpenETLFileDialog']();
 }
 
 export function OpenETLInWPA(arg1) {
   return window['go']['main']['App']['OpenETLInWPA'](arg1);
+}
+
+export function OpenEVTXFileDialog() {
+  return window['go']['main']['App']['OpenEVTXFileDialog']();
 }
 
 export function OpenEventViewer() {

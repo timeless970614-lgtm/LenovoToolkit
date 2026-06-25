@@ -35,7 +35,7 @@
         <div class="test-info-grid">
           <div class="test-info-item">
             <span class="test-info-label">Build 版本</span>
-            <span class="test-info-value mono">v1.0.21</span>
+            <span class="test-info-value mono">v1.0.22</span>
           </div>
           <div class="test-info-item">
             <span class="test-info-label">构建日期</span>

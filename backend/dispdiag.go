@@ -161,22 +161,19 @@ func parseDispdiagOutput(r *DispdiagResult) {
 		r.OutputSize = fmt.Sprintf("%.2f MB", sizeMB)
 	}
 
-	// Read file content (limit to 500KB for display)
+	// Read file content as hex dump (dispdiag .dat is binary)
 	data, err := os.ReadFile(r.OutputPath)
 	if err != nil {
 		r.Errors = append(r.Errors, fmt.Sprintf("Failed to read output file: %v", err))
 		return
 	}
 
-	content := string(data)
-	if len(content) > 500*1024 {
-		r.FileContent = content[:500*1024] + "\n\n... (truncated, use Export to save full file)"
-	} else {
-		r.FileContent = content
-	}
+	// Generate hex dump (first 4KB) since .dat is binary
+	r.FileContent = hexDump(data, 4096)
 
-	// Parse content line by line
-	parseDispdiagContent(r, content)
+	// Extract printable text regions for parsing
+	textContent := extractPrintable(data)
+	parseDispdiagContent(r, textContent)
 }
 
 func parseDispdiagContent(r *DispdiagResult, content string) {
@@ -291,4 +288,107 @@ func ExportDispdiagResult(result DispdiagResult, outputPath string) string {
 // GetDispdiagOutputDir returns the default output directory for dispdiag
 func GetDispdiagOutputDir() string {
 	return filepath.Join(os.Getenv("TEMP"), "LenovoToolkit_Dispdiag")
+}
+
+// OpenDispdiagLog finds and opens the latest dispdiag log file
+func OpenDispdiagLog() string {
+	outDir := GetDispdiagOutputDir()
+
+	// Find the latest .dat file
+	var latestPath string
+	var latestTime time.Time
+
+	// Check .dat files
+	datMatches, _ := filepath.Glob(filepath.Join(outDir, "*.dat"))
+	for _, m := range datMatches {
+		if fi, err := os.Stat(m); err == nil {
+			if fi.ModTime().After(latestTime) {
+				latestTime = fi.ModTime()
+				latestPath = m
+			}
+		}
+	}
+
+	// Also check .txt files (from -tee output)
+	txtMatches, _ := filepath.Glob(filepath.Join(outDir, "dispdiag.txt"))
+	for _, m := range txtMatches {
+		if fi, err := os.Stat(m); err == nil {
+			if fi.ModTime().After(latestTime) {
+				latestTime = fi.ModTime()
+				latestPath = m
+			}
+		}
+	}
+
+	// Also check .json files (from export)
+	jsonMatches, _ := filepath.Glob(filepath.Join(outDir, "*.json"))
+	for _, m := range jsonMatches {
+		if fi, err := os.Stat(m); err == nil {
+			if fi.ModTime().After(latestTime) {
+				latestTime = fi.ModTime()
+				latestPath = m
+			}
+		}
+	}
+
+	if latestPath == "" {
+		return "No dispdiag log file found. Run Dispdiag first."
+	}
+
+	// Open Explorer and select the latest file
+	cmd := exec.Command("explorer", "/select,"+latestPath)
+	if err := cmd.Start(); err != nil {
+		return fmt.Sprintf("Failed to open log: %v", err)
+	}
+
+	return latestPath
+}
+
+// hexDump produces a classic hex dump of binary data (limited to maxBytes)
+func hexDump(data []byte, maxBytes int) string {
+	if len(data) > maxBytes {
+		data = data[:maxBytes]
+	}
+	var sb strings.Builder
+	sb.WriteString("         0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F  |0123456789ABCDEF|\n")
+	sb.WriteString("--------- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- |----------------|\n")
+	for i := 0; i < len(data); i += 16 {
+		sb.WriteString(fmt.Sprintf("%08X ", i))
+		line := data[i:min(i+16, len(data))]
+		// Hex part
+		hexParts := make([]string, 16)
+		ascii := make([]byte, 16)
+		for j := 0; j < 16; j++ {
+			if j < len(line) {
+				hexParts[j] = fmt.Sprintf("%02X", line[j])
+				if line[j] >= 32 && line[j] < 127 {
+					ascii[j] = line[j]
+				} else {
+					ascii[j] = '.'
+				}
+			} else {
+				hexParts[j] = "  "
+				ascii[j] = ' '
+			}
+		}
+		sb.WriteString(strings.Join(hexParts, " "))
+		sb.WriteString(" |")
+		sb.Write(ascii)
+		sb.WriteString("|\n")
+	}
+	if len(data) >= maxBytes {
+		sb.WriteString(fmt.Sprintf("\n... (hex dump truncated at %d bytes, %d total)\n", maxBytes, maxBytes))
+	}
+	return sb.String()
+}
+
+// extractPrintable extracts only printable ASCII (32-126) and common whitespace from binary data
+func extractPrintable(data []byte) string {
+	var sb strings.Builder
+	for _, b := range data {
+		if (b >= 32 && b < 127) || b == '\n' || b == '\r' || b == '\t' {
+			sb.WriteByte(b)
+		}
+	}
+	return sb.String()
 }

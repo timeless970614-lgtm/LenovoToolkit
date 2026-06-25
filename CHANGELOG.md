@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.22 (2026-06-24)
+
+### New Features
+- EVTX file loading and level-based filtering
+- EventData column with key=value format
+- Table column dividers
+- Critical events sorted to top by time
+
 ## v1.0.21 (2026-06-23)
 
 ### New Features

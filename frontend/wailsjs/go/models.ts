@@ -1244,6 +1244,7 @@ export namespace backend {
 	    providerName: string;
 	    eventId: number;
 	    message: string;
+	    eventData: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new EventLogEntry(source);
@@ -1256,6 +1257,7 @@ export namespace backend {
 	        this.providerName = source["providerName"];
 	        this.eventId = source["eventId"];
 	        this.message = source["message"];
+	        this.eventData = source["eventData"];
 	    }
 	}
 	export class EventProvider {
