@@ -466,6 +466,30 @@ export namespace backend {
 		    return a;
 		}
 	}
+	export class BootSpeedInfo {
+	    lastBootTime: string;
+	    bootDurationMs: number;
+	    uptimeSeconds: number;
+	    startupCount: number;
+	    serviceCount: number;
+	    servicesList: string;
+	    startupItems: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BootSpeedInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.lastBootTime = source["lastBootTime"];
+	        this.bootDurationMs = source["bootDurationMs"];
+	        this.uptimeSeconds = source["uptimeSeconds"];
+	        this.startupCount = source["startupCount"];
+	        this.serviceCount = source["serviceCount"];
+	        this.servicesList = source["servicesList"];
+	        this.startupItems = source["startupItems"];
+	    }
+	}
 	export class CPUProcessItem {
 	    processName: string;
 	    pid: number;
@@ -1377,6 +1401,75 @@ export namespace backend {
 	    }
 	}
 	
+	
+	export class LaunchSpeedResult {
+	    appName: string;
+	    appPath: string;
+	    launchMs: number;
+	    processMs: number;
+	    success: boolean;
+	    error?: string;
+	    category: string;
+	    method: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LaunchSpeedResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.appName = source["appName"];
+	        this.appPath = source["appPath"];
+	        this.launchMs = source["launchMs"];
+	        this.processMs = source["processMs"];
+	        this.success = source["success"];
+	        this.error = source["error"];
+	        this.category = source["category"];
+	        this.method = source["method"];
+	    }
+	}
+	export class LaunchSpeedReport {
+	    results: LaunchSpeedResult[];
+	    totalTime: number;
+	    avgLaunch: number;
+	    fastest: string;
+	    slowest: string;
+	    systemBoot: number;
+	    timestamp: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LaunchSpeedReport(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.results = this.convertValues(source["results"], LaunchSpeedResult);
+	        this.totalTime = source["totalTime"];
+	        this.avgLaunch = source["avgLaunch"];
+	        this.fastest = source["fastest"];
+	        this.slowest = source["slowest"];
+	        this.systemBoot = source["systemBoot"];
+	        this.timestamp = source["timestamp"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	
 	export class LogFileInfo {
 	    name: string;

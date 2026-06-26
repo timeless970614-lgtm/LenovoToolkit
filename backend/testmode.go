@@ -5,7 +5,9 @@ package backend
 import (
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/windows"
 )
@@ -55,9 +57,118 @@ func TestBrightness() map[string]interface{} {
 	return result
 }
 
-// TestFNQ checks FN+Q hotkey support and availability via Lenovo registry.
+// --- SendInput structures for simulating keyboard events ---
+var (
+	user32DLL   = windows.NewLazySystemDLL("user32.dll")
+	procSendInput = user32DLL.NewProc("SendInput")
+)
+
+const (
+	INPUT_KEYBOARD = 1
+	KEYEVENTF_KEYUP = 0x0002
+	KEYEVENTF_EXTENDEDKEY = 0x0001
+	VK_Q = 0x51 // Virtual key code for Q
+)
+
+type KEYBDINPUT struct {
+	WVk         uint16
+	WScan       uint16
+	DwFlags     uint32
+	Time        uint32
+	DwExtraInfo uintptr
+}
+
+type INPUT struct {
+	Type uint32
+	Ki   KEYBDINPUT
+	// Union padding — MOUSEINPUT and HARDWAREINPUT are larger, but we only use keyboard
+	Padding [56]byte // enough to cover the union
+}
+
+// simulateFNQKeyPress simulates pressing and releasing FN+Q.
+// FN key cannot be sent via SendInput (it's handled by embedded controller),
+// so we send Q key with extended-key flag. On Lenovo systems with DYTC driver,
+// this may trigger the mode cycle if the EC intercepts it.
+// Additionally, we also try sending via PowerShell SendKeys as fallback.
+func simulateFNQKeyPress() {
+	// Method 1: SendInput (Win32 API) — send Q key down + up
+	inputs := []INPUT{
+		{Type: INPUT_KEYBOARD, Ki: KEYBDINPUT{WVk: VK_Q, DwFlags: KEYEVENTF_EXTENDEDKEY}},
+		{Type: INPUT_KEYBOARD, Ki: KEYBDINPUT{WVk: VK_Q, DwFlags: KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP}},
+	}
+	procSendInput.Call(uintptr(len(inputs)), uintptr(unsafe.Pointer(&inputs[0])), uintptr(unsafe.Sizeof(INPUT{})))
+	
+	// Method 2: PowerShell SendKeys fallback
+	// This uses WScript.Shell.SendKeys which can send keystrokes to the active window
+	script := `
+$shell = New-Object -ComObject WScript.Shell
+$shell.SendKeys('{Q}')
+`
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	cmd.Run()
+}
+// then simulates FN+Q keypresses to verify mode switching.
 func TestFNQ() map[string]interface{} {
 	result := make(map[string]interface{})
+
+	// --- Phase 1: Simulate FN+Q keypress ---
+	// Record mode before keypress
+	var modeBefore, modeAfter string
+	infoBefore, errBefore := GetDYTCInfo()
+	if errBefore == nil && infoBefore != nil {
+		modeBefore = infoBefore.CurrentMode
+	} else {
+		modeBefore = "N/A"
+	}
+	result["modeBefore"] = modeBefore
+	
+	// Simulate FN+Q: send Q key event (FN is handled by EC/firmware, not as a standard VK)
+	// On Lenovo laptops, FN+Q triggers DYTC mode cycle via ACPI embedded controller.
+	// We use SendInput to send VK_Q with extended-key flag, which some drivers intercept.
+	simulateFNQKeyPress()
+	
+	// Wait for mode to change (give EC/DYTC driver time to process)
+	time.Sleep(3 * time.Second)
+	
+	// Check mode after first keypress
+	infoAfter1, errAfter1 := GetDYTCInfo()
+	if errAfter1 == nil && infoAfter1 != nil {
+		modeAfter = infoAfter1.CurrentMode
+	} else {
+		modeAfter = "N/A"
+	}
+	result["modeAfter1"] = modeAfter
+	result["modeChanged1"] = (modeBefore != modeAfter && modeBefore != "N/A" && modeAfter != "N/A")
+	
+	// --- Idle 10 seconds ---
+	result["idlePhase"] = "idle 10s"
+	time.Sleep(10 * time.Second)
+	
+	// --- Phase 2: Repeat FN+Q keypress ---
+	simulateFNQKeyPress()
+	time.Sleep(3 * time.Second)
+	
+	infoAfter2, errAfter2 := GetDYTCInfo()
+	var modeAfter2 string
+	if errAfter2 == nil && infoAfter2 != nil {
+		modeAfter2 = infoAfter2.CurrentMode
+	} else {
+		modeAfter2 = "N/A"
+	}
+	result["modeAfter2"] = modeAfter2
+	result["modeChanged2"] = (modeAfter != modeAfter2 && modeAfter != "N/A" && modeAfter2 != "N/A")
+	
+	// Restore original mode
+	if modeBefore != "N/A" && modeAfter2 != modeBefore {
+		go func() {
+			time.Sleep(2 * time.Second)
+			SetDYTCModeByName(modeBefore)
+		}()
+	}
+	result["restoredTo"] = modeBefore
+	
+	// --- Phase 3: Check registry/service info (same as before) ---
 
 	// Check current mode via DYTC
 	info, err := GetDYTCInfo()

@@ -449,7 +449,7 @@
             </svg>
           </div>
           <div class="about-info">
-            <div class="about-name">Lenovo Dispatcher Toolkit</div>
+            <div class="about-name">Lenovo Toolkit</div>
             <div class="about-version">v1.0.22</div>
             <div class="about-copyright">© 2026 Lenovo. All rights reserved.</div>
           </div>

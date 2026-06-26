@@ -15,7 +15,7 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 	err := wails.Run(&options.App{
-		Title:     "Lenovo Dispatcher Toolkit",
+		Title:     "Lenovo Toolkit",
 		Width:     1150,
 		Height:    750,
 		MinWidth:  800,

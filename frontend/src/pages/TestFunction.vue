@@ -1,23 +1,6 @@
 <template>
   <div class="test-func-page">
 
-    <!-- Header -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"/>
-          </svg>
-          Test Function
-        </h3>
-        <button class="btn btn-secondary btn-sm" @click="runAllTests" :disabled="running">
-          <span v-if="running" class="spinner-small"></span>
-          <span v-else>▶ Run All</span>
-        </button>
-      </div>
-      <p class="test-desc">对核心功能模块进行诊断测试，验证各子系统是否正常工作。</p>
-    </div>
-
     <!-- Test Tabs (horizontal) -->
     <div class="test-tabs-bar">
       <div 
@@ -25,7 +8,10 @@
         :class="['test-tab', activeTab === tab.id ? 'active' : '', tab.done ? (tab.pass ? 'pass' : 'warn') : '']"
         @click="activeTab = tab.id"
       >
-        <svg :width="tab.iconSize || 16" :height="tab.iconSize || 16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" v-html="tab.iconPath"></svg>
+        <svg v-if="tab.id === 'launch'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><circle cx="12" cy="12" r="10"/></svg>
+        <svg v-else-if="tab.id === 'brightness'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg v-else-if="tab.id === 'fnq'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4"/></svg>
+        <svg v-else-if="tab.id === 'mode'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         <span class="tab-label">{{ tab.label }}</span>
         <span v-if="tab.done" class="tab-badge">{{ tab.pass ? '✓' : '~' }}</span>
       </div>
@@ -35,47 +21,128 @@
     <div class="test-tab-content">
 
       <!-- Launch Speed Tab -->
-      <div v-if="activeTab === 'launch'" class="card">
+      <div v-if="activeTab === 'launch'" class="card launch-speed-card">
         <div class="card-header">
           <h3 class="card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><circle cx="12" cy="12" r="10"/></svg>
             应用启动速度
           </h3>
-          <span v-if="launch.done" :class="['test-badge', launch.fast ? 'pass' : 'warn']">
-            {{ launch.fast ? 'PASS' : 'OK' }}
-          </span>
+          <div class="header-actions">
+            <select class="method-select" v-model="launchMethod">
+              <option value="warm">Warm（热启动）</option>
+              <option value="cold">Cold（冷启动）</option>
+            </select>
+            <button class="btn btn-primary btn-sm" @click="runBenchmark" :disabled="benchmarkRunning">
+              <span v-if="benchmarkRunning" class="spinner-small"></span>
+              <span v-else>▶ 开始测试</span>
+            </button>
+          </div>
         </div>
         <div class="test-body">
-          <div class="test-info-grid">
-            <div class="test-info-item">
-              <span class="test-info-label">Build 版本</span>
-              <span class="test-info-value mono">v1.0.22</span>
+          <!-- Boot info -->
+          <div class="boot-info-grid" v-if="bootInfo">
+            <div class="boot-stat-card">
+              <span class="boot-stat-label">上次开机</span>
+              <span class="boot-stat-value mono">{{ bootInfo.lastBootTime || '—' }}</span>
             </div>
-            <div class="test-info-item">
-              <span class="test-info-label">构建日期</span>
-              <span class="test-info-value mono">2026-06-07</span>
+            <div class="boot-stat-card">
+              <span class="boot-stat-label">运行时长</span>
+              <span class="boot-stat-value mono highlight">{{ formatUptime(bootInfo.uptimeSeconds) }}</span>
             </div>
-            <div class="test-info-item">
-              <span class="test-info-label">Framework</span>
-              <span class="test-info-value mono">Wails v2.12.0</span>
+            <div class="boot-stat-card">
+              <span class="boot-stat-label">启动项数量</span>
+              <span class="boot-stat-value mono" :class="bootInfo.startupCount > 10 ? 'warn' : 'ok'">{{ bootInfo.startupCount }}</span>
+              <span class="boot-stat-hint">{{ bootInfo.startupCount > 10 ? '偏多' : '正常' }}</span>
             </div>
-            <div class="test-info-item">
-              <span class="test-info-label">启动耗时</span>
-              <span :class="['test-info-value', 'mono', 'highlight', launch.done ? '' : 'loading-text']">
-                {{ launch.elapsed ? launch.elapsed + ' ms' : '—' }}
-              </span>
+            <div class="boot-stat-card">
+              <span class="boot-stat-label">自动服务</span>
+              <span class="boot-stat-value mono">{{ bootInfo.serviceCount }}</span>
+              <span class="boot-stat-hint">个正在运行</span>
             </div>
           </div>
-          <div class="test-actions">
-            <button class="btn btn-primary btn-sm" @click="testLaunchSpeed" :disabled="launch.running">
-              <span v-if="launch.running" class="spinner-small"></span>
-              <span v-else>测试启动速度</span>
-            </button>
-            <span v-if="launch.result" :class="['result-text', launch.result.success ? 'success' : 'error']">
-              {{ launch.result.message }}
-            </span>
+          <!-- Startup items detail -->
+          <div v-if="bootInfo && startupList.length" class="startup-section">
+            <div class="section-header" @click="showStartupDetail = !showStartupDetail">
+              <span class="section-title">📋 启动项列表</span>
+              <span class="section-toggle">{{ showStartupDetail ? '▼' : '▶' }}</span>
+            </div>
+            <div v-if="showStartupDetail" class="startup-list">
+              <div v-for="item in startupList" :key="item.name" class="startup-item">
+                <span class="startup-name">{{ item.name }}</span>
+                <span class="startup-source">{{ item.source }}</span>
+                <span class="startup-path mono">{{ truncatePath(item.path) }}</span>
+              </div>
+            </div>
+          </div>
+          <!-- Summary stats -->
+          <div v-if="report" class="summary-grid">
+            <div class="summary-card best">
+              <span class="summary-label">最快启动</span>
+              <span class="summary-value">{{ report.fastest || '—' }}</span>
+            </div>
+            <div class="summary-card worst">
+              <span class="summary-label">最慢启动</span>
+              <span class="summary-value">{{ report.slowest || '—' }}</span>
+            </div>
+            <div class="summary-card avg">
+              <span class="summary-label">平均耗时</span>
+              <span class="summary-value mono">{{ report.avgLaunch.toFixed(2) }} s</span>
+            </div>
+            <div class="summary-card total">
+              <span class="summary-label">总测试时间</span>
+              <span class="summary-value mono">{{ report.totalTime.toFixed(2) }} s</span>
+            </div>
+          </div>
+          <!-- Running progress -->
+          <div v-if="benchmarkRunning" class="test-loading">
+            <div class="spinner-small"></div>
+            <span>正在测试应用启动速度... ({{ doneCount }}/{{ totalCount }})</span>
+          </div>
+          <!-- Results table -->
+          <div v-if="report && report.results.length" class="results-table">
+            <div class="result-header">
+              <span class="col-name">应用</span>
+              <span class="col-cat">类别</span>
+              <span class="col-process">进程创建</span>
+              <span class="col-launch">启动耗时</span>
+              <span class="col-status">状态</span>
+            </div>
+            <div v-for="r in report.results" :key="r.appName" :class="['result-row', r.success ? 'success' : 'failed']">
+              <span class="col-name"><span :class="['cat-dot', 'cat-' + r.category]"></span>{{ r.appName }}</span>
+              <span class="col-cat">{{ categoryLabel(r.category) }}</span>
+              <span class="col-process mono">{{ r.success ? r.processMs.toFixed(2) + ' s' : '—' }}</span>
+              <span class="col-launch mono" :class="launchSpeedClass(r.launchMs)">{{ r.success ? r.launchMs.toFixed(2) + ' s' : '—' }}</span>
+              <span :class="['col-status', r.success ? 'status-ok' : 'status-fail']">{{ r.success ? '✓' : '✗ ' + (r.error || '失败') }}</span>
+            </div>
+          </div>
+          <!-- Custom app -->
+          <div class="custom-app-section">
+            <div class="custom-title">🔧 自定义应用测试</div>
+            <div class="custom-input-row">
+              <input type="text" class="custom-input" v-model="customAppPath" placeholder="输入应用路径，如 C:\Windows\notepad.exe" />
+              <button class="btn btn-primary btn-sm" @click="testCustomApp" :disabled="customRunning || !customAppPath">
+                <span v-if="customRunning" class="spinner-small"></span>
+                <span v-else>测试</span>
+              </button>
+            </div>
+            <div v-if="customResult" class="custom-result">
+              <div class="result-row custom-result-row">
+                <span class="result-label">应用名称</span>
+                <span class="result-value mono">{{ customResult.appName }}</span>
+              </div>
+              <div class="result-row custom-result-row">
+                <span class="result-label">进程创建</span>
+                <span class="result-value mono">{{ customResult.processMs.toFixed(2) }} s</span>
+              </div>
+              <div class="result-row custom-result-row">
+                <span class="result-label">启动耗时</span>
+                <span :class="['result-value', 'mono', launchSpeedClass(customResult.launchMs)]">{{ customResult.launchMs.toFixed(2) }} s</span>
+              </div>
+              <div v-if="customResult.error" class="result-error">{{ customResult.error }}</div>
+            </div>
+          </div>
+          <div v-if="!report && !benchmarkRunning" class="test-hint">
+            <p>测试常见应用的启动耗时，支持冷启动和热启动对比。冷启动会先关闭应用再测量，热启动直接测量。</p>
           </div>
         </div>
       </div>
@@ -85,8 +152,8 @@
         <div class="card-header">
           <h3 class="card-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+              <circle></circle>
+              <path></path>
             </svg>
             屏幕亮度测试
           </h3>
@@ -143,8 +210,8 @@
         <div class="card-header">
           <h3 class="card-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="7" width="20" height="14" rx="2"/>
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+              <rect></rect>
+              <path></path>
             </svg>
             FN+Q 热键测试
           </h3>
@@ -155,9 +222,32 @@
         <div class="test-body">
           <div v-if="fnq.running" class="test-loading">
             <div class="spinner-small"></div>
-            <span>正在检测 FN+Q 功能...</span>
+            <span>{{ fnqPhase }}</span>
           </div>
           <div v-else-if="fnq.result" class="test-result-block">
+            <!-- Key simulation phases -->
+            <div v-if="fnq.result.modeBefore" class="fnq-phases">
+              <div class="fnq-phase-step">
+                <span class="phase-label">① 按键前模式</span>
+                <span :class="['phase-value', 'mono']">{{ fnq.result.modeBefore }}</span>
+              </div>
+              <div class="fnq-phase-step">
+                <span class="phase-label">② 第一次 FN+Q</span>
+                <span :class="['phase-value', 'mono', fnq.result.modeChanged1 ? 'text-ok' : 'text-muted']">{{ fnq.result.modeAfter1 }} {{ fnq.result.modeChanged1 ? '✓ 已切换' : '(未切换)' }}</span>
+              </div>
+              <div class="fnq-phase-step">
+                <span class="phase-label">③ 空闲 10 秒</span>
+                <span class="phase-value mono">idle</span>
+              </div>
+              <div class="fnq-phase-step">
+                <span class="phase-label">④ 第二次 FN+Q</span>
+                <span :class="['phase-value', 'mono', fnq.result.modeChanged2 ? 'text-ok' : 'text-muted']">{{ fnq.result.modeAfter2 }} {{ fnq.result.modeChanged2 ? '✓ 已切换' : '(未切换)' }}</span>
+              </div>
+              <div class="fnq-phase-step">
+                <span class="phase-label">⑤ 恢复原模式</span>
+                <span class="phase-value mono">{{ fnq.result.restoredTo }}</span>
+              </div>
+            </div>
             <div class="test-info-grid">
               <div class="test-info-item">
                 <span class="test-info-label">当前模式</span>
@@ -217,7 +307,7 @@
         <div class="card-header">
           <h3 class="card-title">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+              <polyline></polyline><polyline></polyline>
             </svg>
             模式切换测试
           </h3>
@@ -267,125 +357,18 @@
           </div>
         </div>
       </div>
-
     </div>
-
-    <!-- Auto Launch (always visible below tabs) -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-            <line x1="8" y1="21" x2="16" y2="21"/>
-            <line x1="12" y1="17" x2="12" y2="21"/>
-          </svg>
-          自动化打开应用
-        </h3>
-        <div class="header-actions">
-          <button class="btn btn-secondary btn-sm" @click="toggleSelectAll" :disabled="autoLaunch.running">
-            {{ allSelected ? '取消全选' : '全选' }}
-          </button>
-          <button class="btn btn-primary btn-sm" @click="launchSelected" :disabled="autoLaunch.running">
-            <span v-if="autoLaunch.running" class="spinner-small"></span>
-            <span v-else>▶ 启动选中</span>
-          </button>
-        </div>
-      </div>
-      <div class="test-body">
-        <!-- Browser section -->
-        <div v-if="autoLaunch.browserItems.length" class="launch-section">
-          <div class="section-label">🌐 浏览器标签页</div>
-          <div class="launch-grid">
-            <div v-for="item in autoLaunch.browserItems" :key="item.id"
-              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
-              @click="toggleItem(item)">
-              <div class="launch-check">
-                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
-              </div>
-              <div class="launch-info">
-                <span class="launch-name">{{ item.name }}</span>
-                <span class="launch-desc">{{ item.description }}</span>
-              </div>
-              <div class="launch-wait">{{ item.waitSec }}s</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Protocol/App section -->
-        <div v-if="autoLaunch.appItems.length" class="launch-section">
-          <div class="section-label">📱 应用与协议</div>
-          <div class="launch-grid">
-            <div v-for="item in autoLaunch.appItems" :key="item.id"
-              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
-              @click="toggleItem(item)">
-              <div class="launch-check">
-                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
-              </div>
-              <div class="launch-info">
-                <span class="launch-name">{{ item.name }}</span>
-                <span class="launch-desc">{{ item.description }}</span>
-              </div>
-              <div class="launch-wait">{{ item.waitSec }}s</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Folder section -->
-        <div v-if="autoLaunch.folderItems.length" class="launch-section">
-          <div class="section-label">
-            📂 文件夹文件
-            <span class="section-hint">（自动扫描目录下的文件）</span>
-          </div>
-          <div class="launch-grid">
-            <div v-for="item in autoLaunch.folderItems" :key="item.id"
-              :class="['launch-item', item.enabled ? 'enabled' : 'disabled']"
-              @click="toggleItem(item)">
-              <div class="launch-check">
-                <span :class="['check-box', item.enabled ? 'checked' : '']">✓</span>
-              </div>
-              <div class="launch-info">
-                <span class="launch-name">{{ item.name }}</span>
-                <span class="launch-desc">{{ item.description }}</span>
-              </div>
-              <div class="launch-wait">{{ item.waitSec }}s</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Running progress -->
-        <div v-if="autoLaunch.running" class="test-loading">
-          <div class="spinner-small"></div>
-          <span>正在启动应用... ({{ autoLaunch.doneCount }}/{{ autoLaunch.totalCount }})</span>
-        </div>
-
-        <!-- Results -->
-        <div v-if="autoLaunch.results.length" class="test-result-block" style="margin-top: 10px;">
-          <div class="result-chips">
-            <span v-for="r in autoLaunch.results" :key="r.itemId" :class="['chip', r.success ? 'chip-ok' : 'chip-fail']">
-              {{ r.name }}: {{ r.success ? '✓ 已启动' : '✗ ' + (r.error || '失败') }}
-            </span>
-          </div>
-        </div>
-
-        <div v-if="!autoLaunch.running && !autoLaunch.results.length" class="test-hint">
-          <p>一键打开 Edge 浏览器标签页、Outlook、爱奇艺客户端及文件夹文件（替代 open_all_files.bat）</p>
-        </div>
-      </div>
-    </div>
-
   </div>
 </template>
-
 <script>
 import {
   TestBrightness,
   TestFNQ,
   TestModeSwitch,
-  GetAutoLaunchItems,
-  GetFolderFiles,
-  BatchLaunchAutoLaunchItems,
-  LaunchAllEnabledItems,
-  ToggleAutoLaunchItem,
+  BenchmarkLaunchSpeed,
+  GetBootSpeedInfo,
+  BenchmarkCustomAppLaunch,
+  GetCommonAppsList,
 } from '../../wailsjs/go/main/App'
 
 export default {
@@ -393,64 +376,95 @@ export default {
   data() {
     return {
       activeTab: 'launch',
-      launch: { running: false, done: false, elapsed: null, fast: false, result: null },
+      // Launch speed
+      bootInfo: null,
+      bootLoading: false,
+      startupList: [],
+      showStartupDetail: false,
+      report: null,
+      benchmarkRunning: false,
+      launchMethod: 'warm',
+      doneCount: 0,
+      totalCount: 0,
+      customAppPath: '',
+      customResult: null,
+      customRunning: false,
+      appsList: [],
       brightness: { running: false, done: false, result: null },
       fnq: { running: false, done: false, result: null },
+      fnqPhase: '准备测试 FN+Q...',
       mode: { running: false, done: false, result: null, anyVerified: false },
-      autoLaunch: {
-        browserItems: [],
-        appItems: [],
-        folderItems: [],
-        running: false,
-        results: [],
-        doneCount: 0,
-        totalCount: 0,
-      },
     }
   },
   computed: {
     testTabs() {
       return [
-        { id: 'launch', label: '启动速度', done: this.launch.done, pass: this.launch.fast,
-          iconPath: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', iconSize: 16 },
-        { id: 'brightness', label: '亮度', done: this.brightness.done, pass: this.brightness.result?.writable,
-          iconPath: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>', iconSize: 16 },
-        { id: 'fnq', label: 'FN+Q', done: this.fnq.done, pass: this.fnq.result?.supported,
-          iconPath: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>', iconSize: 16 },
-        { id: 'mode', label: '模式切换', done: this.mode.done, pass: this.mode.anyVerified,
-          iconPath: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', iconSize: 16 },
+        { id: 'launch', label: '启动速度', done: this.report !== null, pass: this.report?.fastest },
+        { id: 'brightness', label: '亮度', done: this.brightness.done, pass: this.brightness.result?.writable },
+        { id: 'fnq', label: 'FN+Q', done: this.fnq.done, pass: this.fnq.result?.supported },
+        { id: 'mode', label: '模式切换', done: this.mode.done, pass: this.mode.anyVerified },
       ]
-    },
-    allItems() {
-      return [...this.autoLaunch.browserItems, ...this.autoLaunch.appItems, ...this.autoLaunch.folderItems]
-    },
-    allSelected() {
-      return this.allItems.length > 0 && this.allItems.every(i => i.enabled)
-    },
-    running() {
-      return this.launch.running || this.brightness.running || this.fnq.running || this.mode.running
     },
   },
   methods: {
-    async testLaunchSpeed() {
-      this.launch.running = true
-      this.launch.done = false
-      this.launch.result = null
-      const start = performance.now()
+    // ===== Launch Speed =====
+    async refreshBootInfo() {
+      this.bootLoading = true
       try {
-        const { GetSystemInfo } = await import('../../wailsjs/go/main/App')
-        await GetSystemInfo()
-        const elapsed = Math.round(performance.now() - start)
-        this.launch.elapsed = elapsed
-        this.launch.fast = elapsed < 500
-        this.launch.result = { success: true, message: `系统信息调用耗时 ${elapsed}ms` }
+        this.bootInfo = await GetBootSpeedInfo()
+        if (this.bootInfo && this.bootInfo.startupItems) {
+          try { this.startupList = JSON.parse(this.bootInfo.startupItems) } catch (e) { this.startupList = [] }
+        }
+      } catch (e) { console.error('Boot info error:', e) }
+      this.bootLoading = false
+    },
+    async runBenchmark() {
+      this.benchmarkRunning = true
+      this.doneCount = 0
+      this.totalCount = this.appsList.filter(a => a.exists === 'true').length
+      this.report = null
+      try {
+        this.report = await BenchmarkLaunchSpeed(this.launchMethod)
+        this.doneCount = this.report.results.filter(r => r.success).length
+      } catch (e) { console.error('Benchmark error:', e) }
+      this.benchmarkRunning = false
+    },
+    async testCustomApp() {
+      if (!this.customAppPath) return
+      this.customRunning = true
+      this.customResult = null
+      try {
+        this.customResult = await BenchmarkCustomAppLaunch(this.customAppPath, this.launchMethod)
       } catch (e) {
-        this.launch.result = { success: false, message: '系统信息调用失败: ' + String(e) }
+        this.customResult = { appName: this.customAppPath, error: String(e), success: false }
       }
-      this.launch.running = false
-      this.launch.done = true
+      this.customRunning = false
+    },
+    async loadAppsList() {
+      try { this.appsList = await GetCommonAppsList() } catch (e) { console.error('Apps list error:', e) }
+    },
+    formatUptime(seconds) {
+      if (!seconds) return '—'
+      const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60)
+      if (h > 24) { const d = Math.floor(h / 24); return `${d}天 ${h % 24}时 ${m}分` }
+      return `${h}时 ${m}分`
+    },
+    truncatePath(path) {
+      if (!path) return ''
+      return path.length > 60 ? path.substring(0, 57) + '...' : path
+    },
+    categoryLabel(cat) {
+      const labels = { system: '系统', browser: '浏览器', office: '办公', media: '媒体', custom: '自定义' }
+      return labels[cat] || cat
+    },
+    launchSpeedClass(ms) {
+      if (!ms) return ''
+      if (ms < 0.2) return 'speed-fast'
+      if (ms < 1.0) return 'speed-normal'
+      return 'speed-slow'
     },
 
+    // ===== Brightness =====
     async testBrightness() {
       this.brightness.running = true
       this.brightness.done = false
@@ -467,14 +481,29 @@ export default {
     async testFNQ() {
       this.fnq.running = true
       this.fnq.done = false
+      this.fnqPhase = '① 读取初始模式...'
       try {
+        // Phase 1: Read initial mode (backend handles delay internally)
+        this.fnqPhase = '① 模拟第一次 FN+Q 按键...'
+        // The backend TestFNQ now simulates keypresses internally with 10s idle
+        // We update phase text on a timer to give visual feedback
+        const phaseTimer = setInterval(() => {
+          if (this.fnqPhase.includes('①')) this.fnqPhase = '② 等待模式切换 (3s)...'
+          else if (this.fnqPhase.includes('②')) this.fnqPhase = '③ 空闲等待 (10s)...'
+          else if (this.fnqPhase.includes('③')) this.fnqPhase = '④ 模拟第二次 FN+Q 按键...'
+          else if (this.fnqPhase.includes('④')) this.fnqPhase = '⑤ 等待模式切换 (3s)...'
+          else if (this.fnqPhase.includes('⑤')) this.fnqPhase = '⑥ 恢复原模式...'
+          else clearInterval(phaseTimer)
+        }, 3000)
         const result = await TestFNQ()
+        clearInterval(phaseTimer)
         this.fnq.result = result
       } catch (e) {
         this.fnq.result = { error: String(e) }
       }
       this.fnq.running = false
       this.fnq.done = true
+      this.fnqPhase = '测试完成'
     },
 
     async testModeSwitch() {
@@ -494,71 +523,11 @@ export default {
       this.mode.done = true
     },
 
-    async runAllTests() {
-      this.activeTab = 'launch'
-      await this.testLaunchSpeed()
-      this.activeTab = 'brightness'
-      await this.testBrightness()
-      this.activeTab = 'fnq'
-      await this.testFNQ()
-      this.activeTab = 'mode'
-      await this.testModeSwitch()
-    },
 
-    // === Auto Launch methods ===
-    async loadAutoLaunchItems() {
-      try {
-        const [items, folderCfg] = await GetAutoLaunchItems()
-        this.autoLaunch.browserItems = items.filter(i => i.category === 'browser').map(i => ({...i}))
-        this.autoLaunch.appItems = items.filter(i => i.category === 'protocol' || i.category === 'app').map(i => ({...i}))
-
-        // Load folder files
-        try {
-          const folderItems = await GetFolderFiles()
-          this.autoLaunch.folderItems = folderItems.map(i => ({...i}))
-        } catch (e) {
-          console.warn('Folder scan skipped:', e)
-        }
-      } catch (e) {
-        console.error('Failed to load auto launch items:', e)
-      }
-    },
-
-    toggleItem(item) {
-      item.enabled = !item.enabled
-      ToggleAutoLaunchItem(item.id, item.enabled).catch(() => {})
-    },
-
-    toggleSelectAll() {
-      const target = !this.allSelected
-      this.allItems.forEach(item => {
-        item.enabled = target
-        ToggleAutoLaunchItem(item.id, target).catch(() => {})
-      })
-    },
-
-    async launchSelected() {
-      const selected = this.allItems.filter(i => i.enabled).map(i => i.id)
-      if (selected.length === 0) return
-
-      this.autoLaunch.running = true
-      this.autoLaunch.results = []
-      this.autoLaunch.doneCount = 0
-      this.autoLaunch.totalCount = selected.length
-
-      try {
-        const results = await BatchLaunchAutoLaunchItems(selected)
-        this.autoLaunch.results = results || []
-        this.autoLaunch.doneCount = (results || []).length
-      } catch (e) {
-        this.autoLaunch.results = [{ itemId: 'error', name: '错误', error: String(e) }]
-      }
-
-      this.autoLaunch.running = false
-    },
   },
   mounted() {
-    this.loadAutoLaunchItems()
+    this.refreshBootInfo()
+    this.loadAppsList()
   }
 }
 </script>
@@ -570,15 +539,149 @@ export default {
   gap: 16px;
 }
 
-.test-desc {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
 .test-body {
   margin-top: 12px;
 }
+
+/* ===== Launch Speed ===== */
+.launch-speed-card .test-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.boot-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+.boot-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.boot-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.boot-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.boot-stat-value.mono { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 15px; }
+.boot-stat-value.highlight { color: var(--lenovo-red, #E63F32); }
+.boot-stat-value.ok { color: #4ade80; }
+.boot-stat-value.warn { color: #fbbf24; }
+.boot-stat-hint { font-size: 11px; color: var(--text-muted); }
+.startup-section { margin-top: 8px; }
+.section-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; cursor: pointer; border-radius: 6px; transition: background 0.15s;
+}
+.section-header:hover { background: var(--bg-elevated); }
+.section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.section-toggle { font-size: 12px; color: var(--text-muted); }
+.startup-list {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 8px;
+  padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+}
+.startup-item {
+  display: grid; grid-template-columns: 140px 100px 1fr; gap: 8px;
+  padding: 6px 8px; border-radius: 4px; font-size: 13px;
+}
+.startup-item:hover { background: var(--bg); }
+.startup-name { font-weight: 600; color: var(--text-primary); }
+.startup-source {
+  font-size: 11px; color: var(--text-muted); background: var(--bg); padding: 2px 8px;
+  border-radius: 4px; text-align: center;
+}
+.startup-path { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; color: var(--text-muted); }
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;
+}
+.summary-card {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+}
+.summary-card.best { background: rgba(74, 222, 128, 0.08); border-color: rgba(74, 222, 128, 0.3); }
+.summary-card.worst { background: rgba(248, 113, 113, 0.08); border-color: rgba(248, 113, 113, 0.3); }
+.summary-card.avg { background: rgba(96, 165, 250, 0.08); border-color: rgba(96, 165, 250, 0.3); }
+.summary-card.total { background: var(--bg-elevated); }
+.summary-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.summary-value { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.summary-value.mono { font-family: 'Cascadia Code', 'Fira Code', monospace; }
+.results-table {
+  display: flex; flex-direction: column; gap: 2px;
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.result-header, .results-table .result-row {
+  display: grid; grid-template-columns: 2fr 1fr 1.2fr 1.2fr 1.5fr; gap: 8px;
+  padding: 8px 12px; font-size: 13px;
+}
+.results-table .result-header {
+  background: var(--bg-elevated); font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px;
+}
+.results-table .result-row { border-bottom: 1px solid var(--border); }
+.results-table .result-row:last-child { border-bottom: none; }
+.results-table .result-row.success:hover { background: var(--bg-elevated); }
+.results-table .result-row.failed { opacity: 0.5; }
+.col-name { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.col-cat { font-size: 12px; }
+.col-process, .col-launch { font-family: 'Cascadia Code', 'Fira Code', monospace; text-align: right; }
+.col-status { font-size: 12px; }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.cat-system { background: #60a5fa; }
+.cat-browser { background: #fbbf24; }
+.cat-office { background: #a78bfa; }
+.cat-media { background: #f87171; }
+.cat-custom { background: #4ade80; }
+.speed-fast { color: #4ade80; font-weight: 700; }
+.speed-normal { color: var(--text-primary); }
+.speed-slow { color: #f87171; font-weight: 700; }
+.status-ok { color: #4ade80; }
+.status-fail { color: #f87171; font-size: 12px; }
+.custom-app-section {
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.custom-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+.custom-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.custom-input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elevated); color: var(--text-primary);
+  font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px;
+}
+.custom-input:focus { border-color: var(--lenovo-red, #E63F32); outline: none; }
+.custom-result {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+}
+.custom-result-row { display: flex; align-items: center; gap: 12px; }
+.method-select {
+  padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elevated); color: var(--text-primary); font-size: 12px; font-weight: 600;
+}
+.method-select:focus { border-color: var(--lenovo-red, #E63F32); outline: none; }
+
+/* ===== FN+Q Phases ===== */
+.fnq-phases {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 16px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 12px;
+}
+.fnq-phase-step {
+  display: flex; align-items: center; gap: 12px;
+  padding: 6px 10px; border-radius: 6px;
+}
+.fnq-phase-step:hover { background: var(--bg); }
+.phase-label { font-size: 13px; font-weight: 600; color: var(--text-primary); min-width: 120px; }
+.phase-value { font-size: 14px; }
 
 /* ===== Tab Bar ===== */
 .test-tabs-bar {
@@ -972,113 +1075,5 @@ export default {
 .btn-sm {
   padding: 4px 10px;
   font-size: 11px;
-}
-
-/* === Auto Launch Styles === */
-.launch-section {
-  margin-bottom: 16px;
-}
-
-.section-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 8px;
-  padding-left: 4px;
-}
-
-.section-hint {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-muted);
-}
-
-.launch-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 6px;
-}
-
-.launch-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-}
-
-.launch-item:hover {
-  border-color: var(--accent);
-}
-
-.launch-item.enabled {
-  border-color: rgba(74, 222, 128, 0.3);
-  background: rgba(74, 222, 128, 0.05);
-}
-
-.launch-item.disabled {
-  opacity: 0.5;
-}
-
-.launch-check {
-  flex-shrink: 0;
-}
-
-.check-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  font-size: 12px;
-  color: transparent;
-  transition: all 0.15s;
-}
-
-.check-box.checked {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: white;
-}
-
-.launch-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.launch-name {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.launch-desc {
-  display: block;
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.launch-wait {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: 'Cascadia Code', 'Fira Code', monospace;
-  background: var(--bg);
-  padding: 2px 6px;
-  border-radius: 4px;
 }
 </style>

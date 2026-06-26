@@ -5,6 +5,7 @@ package backend
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,8 +21,8 @@ import (
 type LaunchSpeedResult struct {
 	AppName     string  `json:"appName"`
 	AppPath     string  `json:"appPath"`
-	LaunchMs    int64   `json:"launchMs"`    // Time from process start to window visible (ms)
-	ProcessMs   int64   `json:"processMs"`   // Time to just create the process (ms)
+	LaunchMs    float64 `json:"launchMs"`    // Time from process start to window visible (seconds, 0.01 precision)
+	ProcessMs   float64 `json:"processMs"`   // Time to just create the process (seconds, 0.01 precision)
 	Success     bool    `json:"success"`
 	Error       string  `json:"error,omitempty"`
 	Category    string  `json:"category"`    // "system", "browser", "office", "media", "custom"
@@ -31,8 +32,8 @@ type LaunchSpeedResult struct {
 // LaunchSpeedReport holds the full report
 type LaunchSpeedReport struct {
 	Results    []LaunchSpeedResult `json:"results"`
-	TotalTime  int64               `json:"totalTime"`  // Total benchmark time (ms)
-	AvgLaunch  int64               `json:"avgLaunch"`  // Average launch time (ms)
+	TotalTime  float64             `json:"totalTime"`  // Total benchmark time (seconds, 0.01 precision)
+	AvgLaunch  float64             `json:"avgLaunch"`  // Average launch time (seconds, 0.01 precision)
 	Fastest    string              `json:"fastest"`    // Fastest app name
 	Slowest    string              `json:"slowest"`    // Slowest app name
 	SystemBoot int64               `json:"systemBoot"` // Last boot uptime (ms since epoch)
@@ -82,7 +83,7 @@ func BenchmarkLaunchSpeed(method string) LaunchSpeedReport {
 
 	start := time.Now()
 	var results []LaunchSpeedResult
-	var totalLaunchMs int64
+	var totalLaunchMs float64
 
 	for _, app := range commonApps {
 		result := measureLaunch(app.name, app.path, app.category, method)
@@ -96,7 +97,7 @@ func BenchmarkLaunchSpeed(method string) LaunchSpeedReport {
 	bootInfo := GetBootSpeedInfo()
 
 	var fastest, slowest string
-	var fastestMs, slowestMs int64 = 999999, 0
+	var fastestMs, slowestMs float64 = 999.99, 0
 
 	successCount := 0
 	for _, r := range results {
@@ -113,20 +114,26 @@ func BenchmarkLaunchSpeed(method string) LaunchSpeedReport {
 		}
 	}
 
-	var avgMs int64
+	var avgMs float64
 	if successCount > 0 {
-		avgMs = totalLaunchMs / int64(successCount)
+		avgMs = totalLaunchMs / float64(successCount)
 	}
+	avgMs = roundTo01(avgMs)
 
 	return LaunchSpeedReport{
 		Results:    results,
-		TotalTime:  time.Since(start).Milliseconds(),
+		TotalTime:  roundTo01(time.Since(start).Seconds()),
 		AvgLaunch:  avgMs,
 		Fastest:    fastest,
 		Slowest:    slowest,
 		SystemBoot: bootInfo.BootDurationMs,
 		Timestamp:  time.Now().Format("2006-01-02 15:04:05"),
 	}
+}
+
+// roundTo01 rounds a float64 to 0.01 precision
+func roundTo01(v float64) float64 {
+	return math.Round(v*100) / 100
 }
 
 // measureLaunch measures the time to launch a single app
@@ -196,7 +203,7 @@ func measureLaunch(name, path, category, method string) LaunchSpeedResult {
 		return result
 	}
 
-	result.ProcessMs = time.Since(processStart).Milliseconds()
+	result.ProcessMs = roundTo01(time.Since(processStart).Seconds())
 
 	// For simple apps, process creation time ≈ launch time
 	// For complex apps, we wait a bit then check if process is responsive
@@ -214,14 +221,14 @@ func measureLaunch(name, path, category, method string) LaunchSpeedResult {
 				// For GUI apps, give them time to render
 				if category == "browser" || category == "office" {
 					time.Sleep(500 * time.Millisecond)
-					result.LaunchMs = time.Since(processStart).Milliseconds()
+					result.LaunchMs = roundTo01(time.Since(processStart).Seconds())
 					break
 				}
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
 		if result.LaunchMs == 0 {
-			result.LaunchMs = time.Since(processStart).Milliseconds()
+			result.LaunchMs = roundTo01(time.Since(processStart).Seconds())
 		}
 	}
 

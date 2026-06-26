@@ -12,7 +12,7 @@
           </svg>
         </div>
         <div class="hero-text">
-          <h2 class="hero-title">Lenovo Dispatcher Toolkit</h2>
+          <h2 class="hero-title">Lenovo Toolkit</h2>
           <p class="hero-subtitle">Power Management & Thermal Control Utility</p>
           <div class="hero-meta">
             <span class="version-chip">v1.0.22</span>
@@ -114,7 +114,7 @@
       </div>
       <div class="about-body">
         <p class="about-desc">
-          <strong>Lenovo Dispatcher Toolkit</strong> is a comprehensive utility for Lenovo laptops,
+          <strong>Lenovo Toolkit</strong> is a comprehensive utility for Lenovo laptops,
           providing deep access to the <strong>Lenovo Process Management Dispatcher</strong> driver.
           It enables fine-grained control over thermal modes, power plans, GPU behavior,
           and AI engine settings through a modern, intuitive interface.
