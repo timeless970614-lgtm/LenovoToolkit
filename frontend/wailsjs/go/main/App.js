@@ -42,6 +42,14 @@ export function BatchLaunchAutoLaunchItems(arg1) {
   return window['go']['main']['App']['BatchLaunchAutoLaunchItems'](arg1);
 }
 
+export function BenchmarkCustomAppLaunch(arg1, arg2) {
+  return window['go']['main']['App']['BenchmarkCustomAppLaunch'](arg1, arg2);
+}
+
+export function BenchmarkLaunchSpeed(arg1) {
+  return window['go']['main']['App']['BenchmarkLaunchSpeed'](arg1);
+}
+
 export function CaptureSystemEventLog(arg1, arg2) {
   return window['go']['main']['App']['CaptureSystemEventLog'](arg1, arg2);
 }
@@ -114,6 +122,10 @@ export function GetAutoLaunchItems() {
   return window['go']['main']['App']['GetAutoLaunchItems']();
 }
 
+export function GetBootSpeedInfo() {
+  return window['go']['main']['App']['GetBootSpeedInfo']();
+}
+
 export function GetCachedGPUStatus() {
   return window['go']['main']['App']['GetCachedGPUStatus']();
 }
@@ -128,6 +140,10 @@ export function GetClassDetails(arg1, arg2) {
 
 export function GetClassesInNamespace(arg1) {
   return window['go']['main']['App']['GetClassesInNamespace'](arg1);
+}
+
+export function GetCommonAppsList() {
+  return window['go']['main']['App']['GetCommonAppsList']();
 }
 
 export function GetDYTCInfo() {

@@ -883,6 +883,24 @@ func (a *App) SetAutoLaunchFolderConfig(cfg backend.AutoLaunchFolderConfig) {
 	backend.SetAutoLaunchFolderConfig(cfg)
 }
 
+// ============ Launch Speed Benchmark ============
+
+func (a *App) BenchmarkLaunchSpeed(method string) backend.LaunchSpeedReport {
+	return backend.BenchmarkLaunchSpeed(method)
+}
+
+func (a *App) GetBootSpeedInfo() backend.BootSpeedInfo {
+	return backend.GetBootSpeedInfo()
+}
+
+func (a *App) BenchmarkCustomAppLaunch(appPath string, method string) backend.LaunchSpeedResult {
+	return backend.BenchmarkCustomAppLaunch(appPath, method)
+}
+
+func (a *App) GetCommonAppsList() []map[string]string {
+	return backend.GetCommonAppsList()
+}
+
 // ============ AI Agent ============
 
 // GetAIAgentSystemInfo returns comprehensive system information

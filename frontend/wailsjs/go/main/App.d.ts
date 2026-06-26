@@ -23,6 +23,10 @@ export function BatchLaunchApps(arg1:Array<string>):Promise<Array<Record<string,
 
 export function BatchLaunchAutoLaunchItems(arg1:Array<string>):Promise<Array<backend.AutoLaunchResult>>;
 
+export function BenchmarkCustomAppLaunch(arg1:string,arg2:string):Promise<backend.LaunchSpeedResult>;
+
+export function BenchmarkLaunchSpeed(arg1:string):Promise<backend.LaunchSpeedReport>;
+
 export function CaptureSystemEventLog(arg1:number,arg2:number):Promise<backend.EventLogSummary>;
 
 export function CheckAllToolkitInstalled():Promise<Array<backend.ToolkitInstallStatus>>;
@@ -59,6 +63,8 @@ export function GetAIAgentSystemInfo():Promise<backend.AIAgentSystemInfo>;
 
 export function GetAutoLaunchItems():Promise<Array<backend.AutoLaunchItem>|backend.AutoLaunchFolderConfig>;
 
+export function GetBootSpeedInfo():Promise<backend.BootSpeedInfo>;
+
 export function GetCachedGPUStatus():Promise<number>;
 
 export function GetCachedSystemPower():Promise<backend.SystemPowerInfo>;
@@ -66,6 +72,8 @@ export function GetCachedSystemPower():Promise<backend.SystemPowerInfo>;
 export function GetClassDetails(arg1:string,arg2:string):Promise<string>;
 
 export function GetClassesInNamespace(arg1:string):Promise<string>;
+
+export function GetCommonAppsList():Promise<Array<Record<string, string>>>;
 
 export function GetDYTCInfo():Promise<backend.DYTCInfo>;
 
