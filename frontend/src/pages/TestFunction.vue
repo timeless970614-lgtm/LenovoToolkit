@@ -1,7 +1,7 @@
 <template>
   <div class="test-func-page">
 
-    <!-- Header Info -->
+    <!-- Header -->
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">
@@ -18,185 +18,259 @@
       <p class="test-desc">对核心功能模块进行诊断测试，验证各子系统是否正常工作。</p>
     </div>
 
-    <!-- App Launch Speed Test -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          应用启动速度
-        </h3>
-        <span v-if="launch.done" :class="['test-badge', launch.fast ? 'pass' : 'warn']">
-          {{ launch.fast ? 'PASS' : 'OK' }}
-        </span>
+    <!-- Test Tabs (horizontal) -->
+    <div class="test-tabs-bar">
+      <div 
+        v-for="tab in testTabs" :key="tab.id"
+        :class="['test-tab', activeTab === tab.id ? 'active' : '', tab.done ? (tab.pass ? 'pass' : 'warn') : '']"
+        @click="activeTab = tab.id"
+      >
+        <svg :width="tab.iconSize || 16" :height="tab.iconSize || 16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" v-html="tab.iconPath"></svg>
+        <span class="tab-label">{{ tab.label }}</span>
+        <span v-if="tab.done" class="tab-badge">{{ tab.pass ? '✓' : '~' }}</span>
       </div>
-      <div class="test-body">
-        <div class="test-info-grid">
-          <div class="test-info-item">
-            <span class="test-info-label">Build 版本</span>
-            <span class="test-info-value mono">v1.0.22</span>
-          </div>
-          <div class="test-info-item">
-            <span class="test-info-label">构建日期</span>
-            <span class="test-info-value mono">2026-06-07</span>
-          </div>
-          <div class="test-info-item">
-            <span class="test-info-label">Framework</span>
-            <span class="test-info-value mono">Wails v2.12.0</span>
-          </div>
-          <div class="test-info-item">
-            <span class="test-info-label">启动耗时</span>
-            <span :class="['test-info-value', 'mono', 'highlight', launch.done ? '' : 'loading-text']">
-              {{ launch.elapsed ? launch.elapsed + ' ms' : '—' }}
-            </span>
-          </div>
-        </div>
-        <div class="test-actions">
-          <button class="btn btn-primary btn-sm" @click="testLaunchSpeed" :disabled="launch.running">
-            <span v-if="launch.running" class="spinner-small"></span>
-            <span v-else>测试启动速度</span>
-          </button>
-          <span v-if="launch.result" :class="['result-text', launch.result.success ? 'success' : 'error']">
-            {{ launch.result.message }}
+    </div>
+
+    <!-- Tab Content Area -->
+    <div class="test-tab-content">
+
+      <!-- Launch Speed Tab -->
+      <div v-if="activeTab === 'launch'" class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            应用启动速度
+          </h3>
+          <span v-if="launch.done" :class="['test-badge', launch.fast ? 'pass' : 'warn']">
+            {{ launch.fast ? 'PASS' : 'OK' }}
           </span>
         </div>
-      </div>
-    </div>
-
-    <!-- Brightness Test -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="5"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-          </svg>
-          屏幕亮度测试
-        </h3>
-        <span v-if="brightness.done" :class="['test-badge', brightness.result?.writable ? 'pass' : (brightness.result?.readable ? 'warn' : 'fail')]">
-          {{ brightness.result?.writable ? 'PASS' : (brightness.result?.readable ? 'READ-ONLY' : 'FAIL') }}
-        </span>
-      </div>
-      <div class="test-body">
-        <div v-if="brightness.running" class="test-loading">
-          <div class="spinner-small"></div>
-          <span>正在读写亮度...</span>
-        </div>
-        <div v-else-if="brightness.result" class="test-result-block">
-          <div class="result-row">
-            <span class="result-label">当前亮度</span>
-            <div class="brightness-bar-wrap">
-              <div class="brightness-bar" :style="{ width: brightness.result.currentBrightness + '%' }"></div>
-            </div>
-            <span class="result-value mono">{{ brightness.result.currentBrightness }}%</span>
-          </div>
-          <div class="result-row" v-if="brightness.result.testBrightness">
-            <span class="result-label">测试设置</span>
-            <div class="brightness-bar-wrap">
-              <div class="brightness-bar test-bar" :style="{ width: brightness.result.testBrightness + '%' }"></div>
-            </div>
-            <span class="result-value mono">{{ brightness.result.testBrightness }}%</span>
-          </div>
-          <div class="result-chips">
-            <span :class="['chip', brightness.result.readable ? 'chip-ok' : 'chip-fail']">
-              {{ brightness.result.readable ? '✓ 可读' : '✗ 不可读' }}
-            </span>
-            <span :class="['chip', brightness.result.writable ? 'chip-ok' : 'chip-fail']">
-              {{ brightness.result.writable ? '✓ 可写' : '✗ 不可写' }}
-            </span>
-            <span v-if="brightness.result.error" class="chip chip-fail">
-              {{ brightness.result.error }}
-            </span>
-          </div>
-        </div>
-        <div v-else class="test-hint">
-          <p>测试屏幕亮度读取和设置功能（仅支持笔记本内置屏幕）</p>
-        </div>
-        <div class="test-actions">
-          <button class="btn btn-primary btn-sm" @click="testBrightness" :disabled="brightness.running">
-            <span v-if="brightness.running" class="spinner-small"></span>
-            <span v-else>运行测试</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- FN+Q Test -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="7" width="20" height="14" rx="2"/>
-            <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
-          </svg>
-          FN+Q 热键测试
-        </h3>
-        <span v-if="fnq.done" :class="['test-badge', fnq.result?.supported ? 'pass' : 'warn']">
-          {{ fnq.result?.supported ? 'PASS' : 'N/A' }}
-        </span>
-      </div>
-      <div class="test-body">
-        <div v-if="fnq.running" class="test-loading">
-          <div class="spinner-small"></div>
-          <span>正在检测 FN+Q 功能...</span>
-        </div>
-        <div v-else-if="fnq.result" class="test-result-block">
+        <div class="test-body">
           <div class="test-info-grid">
             <div class="test-info-item">
-              <span class="test-info-label">当前模式</span>
-              <span class="test-info-value mono">{{ fnq.result.currentMode || 'N/A' }}</span>
+              <span class="test-info-label">Build 版本</span>
+              <span class="test-info-value mono">v1.0.22</span>
             </div>
             <div class="test-info-item">
-              <span class="test-info-label">FN+Q 支持</span>
-              <span :class="['test-info-value', 'mono', fnq.result.supported ? 'text-ok' : 'text-muted']">
-                {{ fnq.result.supported ? '支持' : '不支持' }}
-              </span>
+              <span class="test-info-label">构建日期</span>
+              <span class="test-info-value mono">2026-06-07</span>
             </div>
             <div class="test-info-item">
-              <span class="test-info-label">热键可用</span>
-              <span :class="['test-info-value', 'mono', fnq.result.hotkeyAvailable ? 'text-ok' : 'text-muted']">
-                {{ fnq.result.hotkeyAvailable ? '可用' : '不可用' }}
-              </span>
+              <span class="test-info-label">Framework</span>
+              <span class="test-info-value mono">Wails v2.12.0</span>
             </div>
             <div class="test-info-item">
-              <span class="test-info-label">Dispatcher Func</span>
-              <span class="test-info-value mono">{{ fnq.result.dispatcherFunction || 'N/A' }}</span>
-            </div>
-            <div class="test-info-item" v-if="fnq.result.hotkeyStatus">
-              <span class="test-info-label">热键状态</span>
-              <span class="test-info-value mono">{{ fnq.result.hotkeyStatus }}</span>
-            </div>
-            <div class="test-info-item">
-              <span class="test-info-label">DCC 功能</span>
-              <span :class="['test-info-value', 'mono', fnq.result.dccCapability ? 'text-ok' : 'text-muted']">
-                {{ fnq.result.dccCapability ? '支持' : '不支持' }}
-              </span>
-            </div>
-            <div class="test-info-item">
-              <span class="test-info-label">GEEK 功能</span>
-              <span :class="['test-info-value', 'mono', fnq.result.geekCapability ? 'text-ok' : 'text-muted']">
-                {{ fnq.result.geekCapability ? '支持' : '不支持' }}
+              <span class="test-info-label">启动耗时</span>
+              <span :class="['test-info-value', 'mono', 'highlight', launch.done ? '' : 'loading-text']">
+                {{ launch.elapsed ? launch.elapsed + ' ms' : '—' }}
               </span>
             </div>
           </div>
-          <div v-if="fnq.result.error" class="result-error">
-            {{ fnq.result.error }}
+          <div class="test-actions">
+            <button class="btn btn-primary btn-sm" @click="testLaunchSpeed" :disabled="launch.running">
+              <span v-if="launch.running" class="spinner-small"></span>
+              <span v-else>测试启动速度</span>
+            </button>
+            <span v-if="launch.result" :class="['result-text', launch.result.success ? 'success' : 'error']">
+              {{ launch.result.message }}
+            </span>
           </div>
-        </div>
-        <div v-else class="test-hint">
-          <p>检测 FN+Q 快捷键功能支持状态及热键可用性</p>
-        </div>
-        <div class="test-actions">
-          <button class="btn btn-primary btn-sm" @click="testFNQ" :disabled="fnq.running">
-            <span v-if="fnq.running" class="spinner-small"></span>
-            <span v-else>运行测试</span>
-          </button>
         </div>
       </div>
+
+      <!-- Brightness Tab -->
+      <div v-if="activeTab === 'brightness'" class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            屏幕亮度测试
+          </h3>
+          <span v-if="brightness.done" :class="['test-badge', brightness.result?.writable ? 'pass' : (brightness.result?.readable ? 'warn' : 'fail')]">
+            {{ brightness.result?.writable ? 'PASS' : (brightness.result?.readable ? 'READ-ONLY' : 'FAIL') }}
+          </span>
+        </div>
+        <div class="test-body">
+          <div v-if="brightness.running" class="test-loading">
+            <div class="spinner-small"></div>
+            <span>正在读写亮度...</span>
+          </div>
+          <div v-else-if="brightness.result" class="test-result-block">
+            <div class="result-row">
+              <span class="result-label">当前亮度</span>
+              <div class="brightness-bar-wrap">
+                <div class="brightness-bar" :style="{ width: brightness.result.currentBrightness + '%' }"></div>
+              </div>
+              <span class="result-value mono">{{ brightness.result.currentBrightness }}%</span>
+            </div>
+            <div class="result-row" v-if="brightness.result.testBrightness">
+              <span class="result-label">测试设置</span>
+              <div class="brightness-bar-wrap">
+                <div class="brightness-bar test-bar" :style="{ width: brightness.result.testBrightness + '%' }"></div>
+              </div>
+              <span class="result-value mono">{{ brightness.result.testBrightness }}%</span>
+            </div>
+            <div class="result-chips">
+              <span :class="['chip', brightness.result.readable ? 'chip-ok' : 'chip-fail']">
+                {{ brightness.result.readable ? '✓ 可读' : '✗ 不可读' }}
+              </span>
+              <span :class="['chip', brightness.result.writable ? 'chip-ok' : 'chip-fail']">
+                {{ brightness.result.writable ? '✓ 可写' : '✗ 不可写' }}
+              </span>
+              <span v-if="brightness.result.error" class="chip chip-fail">
+                {{ brightness.result.error }}
+              </span>
+            </div>
+          </div>
+          <div v-else class="test-hint">
+            <p>测试屏幕亮度读取和设置功能（仅支持笔记本内置屏幕）</p>
+          </div>
+          <div class="test-actions">
+            <button class="btn btn-primary btn-sm" @click="testBrightness" :disabled="brightness.running">
+              <span v-if="brightness.running" class="spinner-small"></span>
+              <span v-else>运行测试</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FN+Q Tab -->
+      <div v-if="activeTab === 'fnq'" class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2"/>
+              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+            FN+Q 热键测试
+          </h3>
+          <span v-if="fnq.done" :class="['test-badge', fnq.result?.supported ? 'pass' : 'warn']">
+            {{ fnq.result?.supported ? 'PASS' : 'N/A' }}
+          </span>
+        </div>
+        <div class="test-body">
+          <div v-if="fnq.running" class="test-loading">
+            <div class="spinner-small"></div>
+            <span>正在检测 FN+Q 功能...</span>
+          </div>
+          <div v-else-if="fnq.result" class="test-result-block">
+            <div class="test-info-grid">
+              <div class="test-info-item">
+                <span class="test-info-label">当前模式</span>
+                <span class="test-info-value mono">{{ fnq.result.currentMode || 'N/A' }}</span>
+              </div>
+              <div class="test-info-item">
+                <span class="test-info-label">FN+Q 支持</span>
+                <span :class="['test-info-value', 'mono', fnq.result.supported ? 'text-ok' : 'text-muted']">
+                  {{ fnq.result.supported ? '支持' : '不支持' }}
+                </span>
+              </div>
+              <div class="test-info-item">
+                <span class="test-info-label">热键可用</span>
+                <span :class="['test-info-value', 'mono', fnq.result.hotkeyAvailable ? 'text-ok' : 'text-muted']">
+                  {{ fnq.result.hotkeyAvailable ? '可用' : '不可用' }}
+                </span>
+              </div>
+              <div class="test-info-item">
+                <span class="test-info-label">Dispatcher Func</span>
+                <span class="test-info-value mono">{{ fnq.result.dispatcherFunction || 'N/A' }}</span>
+              </div>
+              <div class="test-info-item" v-if="fnq.result.hotkeyStatus">
+                <span class="test-info-label">热键状态</span>
+                <span class="test-info-value mono">{{ fnq.result.hotkeyStatus }}</span>
+              </div>
+              <div class="test-info-item">
+                <span class="test-info-label">DCC 功能</span>
+                <span :class="['test-info-value', 'mono', fnq.result.dccCapability ? 'text-ok' : 'text-muted']">
+                  {{ fnq.result.dccCapability ? '支持' : '不支持' }}
+                </span>
+              </div>
+              <div class="test-info-item">
+                <span class="test-info-label">GEEK 功能</span>
+                <span :class="['test-info-value', 'mono', fnq.result.geekCapability ? 'text-ok' : 'text-muted']">
+                  {{ fnq.result.geekCapability ? '支持' : '不支持' }}
+                </span>
+              </div>
+            </div>
+            <div v-if="fnq.result.error" class="result-error">
+              {{ fnq.result.error }}
+            </div>
+          </div>
+          <div v-else class="test-hint">
+            <p>检测 FN+Q 快捷键功能支持状态及热键可用性</p>
+          </div>
+          <div class="test-actions">
+            <button class="btn btn-primary btn-sm" @click="testFNQ" :disabled="fnq.running">
+              <span v-if="fnq.running" class="spinner-small"></span>
+              <span v-else>运行测试</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode Switch Tab -->
+      <div v-if="activeTab === 'mode'" class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+            </svg>
+            模式切换测试
+          </h3>
+          <span v-if="mode.done" :class="['test-badge', mode.anyVerified ? 'pass' : 'warn']">
+            {{ mode.anyVerified ? 'PASS' : 'N/A' }}
+          </span>
+        </div>
+        <div class="test-body">
+          <div v-if="mode.running" class="test-loading">
+            <div class="spinner-small"></div>
+            <span>正在测试模式切换...</span>
+          </div>
+          <div v-else-if="mode.result" class="test-result-block">
+            <div class="result-row">
+              <span class="result-label">当前模式</span>
+              <span class="result-value mono">{{ mode.result.currentMode || 'N/A' }}</span>
+            </div>
+            <div v-if="mode.result.attempts && mode.result.attempts.length > 0" class="mode-attempts">
+              <div
+                v-for="(attempt, idx) in mode.result.attempts"
+                :key="idx"
+                :class="['mode-attempt-row', attempt.skipped ? 'skipped' : (attempt.verified ? 'verified' : 'failed')]"
+              >
+                <span class="attempt-mode mono">{{ attempt.mode }}</span>
+                <span class="attempt-status">
+                  <span v-if="attempt.skipped" class="status-text skipped">跳过 ({{ attempt.reason }})</span>
+                  <span v-else-if="attempt.verified" class="status-text verified">✓ 成功</span>
+                  <span v-else class="status-text failed">✗ {{ attempt.error || attempt.note }}</span>
+                </span>
+                <span v-if="attempt.switchTimeMs" class="attempt-time mono">
+                  {{ attempt.switchTimeMs }} ms
+                </span>
+              </div>
+            </div>
+            <div v-if="mode.result.error" class="result-error">
+              {{ mode.result.error }}
+            </div>
+          </div>
+          <div v-else class="test-hint">
+            <p>测试热管理模式切换功能（BSM / STD / AQM）</p>
+          </div>
+          <div class="test-actions">
+            <button class="btn btn-primary btn-sm" @click="testModeSwitch" :disabled="mode.running">
+              <span v-if="mode.running" class="spinner-small"></span>
+              <span v-else>运行测试</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
 
-    <!-- Auto Launch (open_all_files.bat replacement) -->
+    <!-- Auto Launch (always visible below tabs) -->
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">
@@ -299,62 +373,6 @@
       </div>
     </div>
 
-    <!-- Mode Switch Test -->
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-          </svg>
-          模式切换测试
-        </h3>
-        <span v-if="mode.done" :class="['test-badge', mode.anyVerified ? 'pass' : 'warn']">
-          {{ mode.anyVerified ? 'PASS' : 'N/A' }}
-        </span>
-      </div>
-      <div class="test-body">
-        <div v-if="mode.running" class="test-loading">
-          <div class="spinner"></div>
-          <span>正在测试模式切换...</span>
-        </div>
-        <div v-else-if="mode.result" class="test-result-block">
-          <div class="result-row">
-            <span class="result-label">当前模式</span>
-            <span class="result-value mono">{{ mode.result.currentMode || 'N/A' }}</span>
-          </div>
-          <div v-if="mode.result.attempts && mode.result.attempts.length > 0" class="mode-attempts">
-            <div
-              v-for="(attempt, idx) in mode.result.attempts"
-              :key="idx"
-              :class="['mode-attempt-row', attempt.skipped ? 'skipped' : (attempt.verified ? 'verified' : 'failed')]"
-            >
-              <span class="attempt-mode mono">{{ attempt.mode }}</span>
-              <span class="attempt-status">
-                <span v-if="attempt.skipped" class="status-text skipped">跳过 ({{ attempt.reason }})</span>
-                <span v-else-if="attempt.verified" class="status-text verified">✓ 成功</span>
-                <span v-else class="status-text failed">✗ {{ attempt.error || attempt.note }}</span>
-              </span>
-              <span v-if="attempt.switchTimeMs" class="attempt-time mono">
-                {{ attempt.switchTimeMs }} ms
-              </span>
-            </div>
-          </div>
-          <div v-if="mode.result.error" class="result-error">
-            {{ mode.result.error }}
-          </div>
-        </div>
-        <div v-else class="test-hint">
-          <p>测试热管理模式切换功能（BSM / STD / AQM）</p>
-        </div>
-        <div class="test-actions">
-          <button class="btn btn-primary btn-sm" @click="testModeSwitch" :disabled="mode.running">
-            <span v-if="mode.running" class="spinner-small"></span>
-            <span v-else>运行测试</span>
-          </button>
-        </div>
-      </div>
-    </div>
-
   </div>
 </template>
 
@@ -374,6 +392,7 @@ export default {
   name: 'TestFunction',
   data() {
     return {
+      activeTab: 'launch',
       launch: { running: false, done: false, elapsed: null, fast: false, result: null },
       brightness: { running: false, done: false, result: null },
       fnq: { running: false, done: false, result: null },
@@ -390,6 +409,18 @@ export default {
     }
   },
   computed: {
+    testTabs() {
+      return [
+        { id: 'launch', label: '启动速度', done: this.launch.done, pass: this.launch.fast,
+          iconPath: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', iconSize: 16 },
+        { id: 'brightness', label: '亮度', done: this.brightness.done, pass: this.brightness.result?.writable,
+          iconPath: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>', iconSize: 16 },
+        { id: 'fnq', label: 'FN+Q', done: this.fnq.done, pass: this.fnq.result?.supported,
+          iconPath: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>', iconSize: 16 },
+        { id: 'mode', label: '模式切换', done: this.mode.done, pass: this.mode.anyVerified,
+          iconPath: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', iconSize: 16 },
+      ]
+    },
     allItems() {
       return [...this.autoLaunch.browserItems, ...this.autoLaunch.appItems, ...this.autoLaunch.folderItems]
     },
@@ -464,9 +495,13 @@ export default {
     },
 
     async runAllTests() {
+      this.activeTab = 'launch'
       await this.testLaunchSpeed()
+      this.activeTab = 'brightness'
       await this.testBrightness()
+      this.activeTab = 'fnq'
       await this.testFNQ()
+      this.activeTab = 'mode'
       await this.testModeSwitch()
     },
 
@@ -545,6 +580,66 @@ export default {
   margin-top: 12px;
 }
 
+/* ===== Tab Bar ===== */
+.test-tabs-bar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.test-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  position: relative;
+  user-select: none;
+}
+
+.test-tab:hover {
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+.test-tab.active {
+  background: var(--bg);
+  color: var(--lenovo-red, #E63F32);
+  border: 1px solid rgba(230, 63, 50, 0.3);
+  box-shadow: 0 2px 8px rgba(230, 63, 50, 0.1);
+}
+
+.test-tab.pass .tab-badge {
+  color: #4ade80;
+}
+
+.test-tab.warn .tab-badge {
+  color: #fbbf24;
+}
+
+.tab-label {
+  white-space: nowrap;
+}
+
+.tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ===== Tab Content ===== */
+.test-tab-content {
+  min-height: 200px;
+}
+
 /* Test Info Grid */
 .test-info-grid {
   display: grid;
@@ -601,12 +696,6 @@ export default {
   padding: 16px;
   color: var(--text-muted);
   font-size: 13px;
-}
-
-.test-loading .spinner {
-  width: 20px;
-  height: 20px;
-  border-width: 2px;
 }
 
 /* Hint */
@@ -823,7 +912,7 @@ export default {
   color: var(--text-muted);
 }
 
-/* Spinner small */
+/* Spinner */
 .spinner-small {
   display: inline-block;
   width: 14px;
@@ -837,6 +926,52 @@ export default {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--lenovo-red, #E63F32);
+  color: white;
+  border-color: var(--lenovo-red, #E63F32);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #d63018;
+}
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--lenovo-red, #E63F32);
+  color: var(--lenovo-red, #E63F32);
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
 }
 
 /* === Auto Launch Styles === */

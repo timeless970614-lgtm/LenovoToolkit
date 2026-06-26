@@ -126,7 +126,6 @@
         <AIAnalysis v-else-if="currentPage === 'aianalysis'" :theme="theme" />
         <Settings v-else-if="currentPage === 'settings'" :theme="theme" :lang="lang" :poll-interval="refreshInterval" @update:theme="setTheme" @update:lang="setLang" @update:poll-interval="setRefreshInterval" />
         <About v-else-if="currentPage === 'about'" :theme="theme" />
-        <LaunchSpeed v-else-if="currentPage === 'launchspeed'" :theme="theme" />
       </div>
     </main>
   </div>
@@ -141,7 +140,6 @@ import ModeCheck from './pages/ModeCheck.vue'
 import AIAnalysis from './pages/AIAnalysis.vue'
 import Settings from './pages/Settings.vue'
 import About from './pages/About.vue'
-import LaunchSpeed from './pages/LaunchSpeed.vue'
 import { StartMLScenarioCapture, StopMLScenarioCapture, GetMLLogStatus, OpenFolder, UninstallDispatcher } from '../wailsjs/go/main/App'
 
 export default {
@@ -155,7 +153,6 @@ export default {
     AIAnalysis,
     Settings,
     About,
-    LaunchSpeed,
   },
 
   data() {
@@ -211,12 +208,6 @@ export default {
           label: 'AI Agent',
           subtitle: 'System Q&A assistant',
           icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
-        },
-        {
-          id: 'launchspeed',
-          label: 'Launch Speed',
-          subtitle: 'App startup benchmark & boot metrics',
-          icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
         },
       ],
       bottomNavItems: [
