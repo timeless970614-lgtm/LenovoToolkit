@@ -562,7 +562,7 @@
           </div>
         </div>
 
-        <!-- Section 8: A/B Comparison -->
+        <!-- Section 8: A/B Comparison Methodology -->
         <div class="kb-section">
           <div class="kb-section-header" @click="toggleKbSection('abComparison')">
             <span class="kb-section-title">8. A/B Comparison Methodology</span>
@@ -575,7 +575,164 @@
               <li>Same scenario, one variable changed (e.g., Energy Saver On vs Off)</li>
               <li>Compare: total duration, CPU frequency, CPU utilization, critical-path wait causes</li>
               <li>Energy Saver reduces CPU frequency → CPU-bound work takes longer → longer end-to-end time</li>
+              <li>Technique applies to any A/B investigation: driver update, BIOS setting, background service</li>
             </ul>
+          </div>
+        </div>
+
+        <!-- Section 9: Windows Assessment Toolkit (WAT) -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('wat')">
+            <span class="kb-section-title">9. Windows Assessment Toolkit (WAT)</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.wat }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.wat" class="kb-section-body">
+            <p class="kb-text"><strong>What is WAT?</strong> Windows Assessment Toolkit provides predefined assessment jobs that automate trace capture, system reboots, and result collection — ideal for structured, repeatable benchmarking.</p>
+            <p class="kb-text"><strong>When to use WAT:</strong> Standardized measurement with built-in metrics, iteration support, and XML reports for cross-device comparison. Ideal for boot, Fast Startup, and system-level scenarios.</p>
+            <p class="kb-text"><strong>When to use WPR:</strong> Fine-grained control over trace providers, or investigating scenarios not covered by a WAT assessment (e.g., specific app launch, UI delay).</p>
+            <p class="kb-text"><strong>WAT Workflow:</strong></p>
+            <ol class="kb-list">
+              <li>Open Windows Assessment Console (WAC) from Start menu</li>
+              <li>Options → New Job → enter job name → select Create a custom job</li>
+              <li>Add Assessments → click + to add relevant assessment (e.g., Boot Performance Fast Startup)</li>
+              <li>Click assessment to configure — uncheck Use recommended settings for additional diagnostics</li>
+              <li>Click Run to execute on local machine, or Package to export to another device</li>
+              <li>Assessment handles reboots and trace capture automatically</li>
+              <li>Results saved as XML report; ETL trace accessible from report header in WAC</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Section 10: CPA Drill-Down Views -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('cpaDrillDown')">
+            <span class="kb-section-title">10. CPA Drill-Down Views</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.cpaDrillDown }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.cpaDrillDown" class="kb-section-body">
+            <p class="kb-text">After identifying the top wait cause in the Wait Cause View, switch to a specialized drill-down view (CPA table header → Preset dropdown):</p>
+            <table class="kb-table">
+              <thead>
+                <tr><th>If bottleneck is…</th><th>Use this view</th><th>What to look for</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>Wait (blocked on another thread)</strong></td><td>Browse Wait Chain</td><td>Expand Hierarchical Time Tree to walk the wait chain. Follow Process → Thread → Stack columns to see who is blocking whom and why.</td></tr>
+                <tr><td><strong>Ready / Preempted (CPU starvation)</strong></td><td>Interference CPU</td><td>Shows CPU activity on all cores during starvation periods. Identify which processes/threads are consuming the CPU time your critical-path thread needs.</td></tr>
+                <tr><td><strong>Disk</strong></td><td>Disk IO DrillDown</td><td>Use Path Name, IO Type, IO Size, IO Time, Disk Service Time to identify which files and I/O patterns are causing the delay.</td></tr>
+                <tr><td><strong>Disk (queue contention)</strong></td><td>Interference Disk IO</td><td>Shows other disk requests serviced while your critical-path thread's I/O was queued, causing longer wait.</td></tr>
+              </tbody>
+            </table>
+            <div class="kb-insight">
+              <strong>Tip:</strong> The Wait Cause View is always the best starting point. Get the big picture first, then drill into specific categories.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 11: CPU Starvation vs Preemption -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('starvationPreemption')">
+            <span class="kb-section-title">11. CPU Starvation vs Preemption</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.starvationPreemption }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.starvationPreemption" class="kb-section-body">
+            <p class="kb-text">Both mean the thread wants to run but can't. The difference is <strong>why</strong>:</p>
+            <table class="kb-table">
+              <thead>
+                <tr><th>Condition</th><th>Meaning</th><th>WPA Column</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><strong>General CPU Starvation</strong></td><td>Thread was readied but all cores are busy — overall CPU saturation</td><td>Ready (s)</td></tr>
+                <tr><td><strong>Preemption</strong></td><td>Thread was already running and got bumped by a higher-priority thread — priority inversion</td><td>Ready (s) — CPA distinguishes the cause</td></tr>
+              </tbody>
+            </table>
+            <p class="kb-text"><strong>Why it matters:</strong> Starvation means you need more cores or less background work. Preemption means you need to fix priority settings or reduce interrupt/DPC load.</p>
+          </div>
+        </div>
+
+        <!-- Section 12: ETW MCP AI-Assisted Analysis -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('etwMcp')">
+            <span class="kb-section-title">12. AI-Assisted Analysis (ETW MCP + Copilot)</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.etwMcp }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.etwMcp" class="kb-section-body">
+            <p class="kb-text"><strong>ETW MCP</strong> is a portable tool that provides a natural-language interface to ETW trace data via GitHub Copilot CLI — complementing WPA, not replacing it.</p>
+            <p class="kb-text"><strong>Workflow:</strong></p>
+            <ol class="kb-list">
+              <li>Verify Copilot CLI: <code>gh copilot --version</code></li>
+              <li>Open Copilot CLI: <code>gh copilot --yolo</code></li>
+              <li>Configure symbols: <code>"Configure both the symbols and symcache for the ETW MCP to only C:\\SymbolsCache"</code></li>
+              <li>Load trace: <code>"Open the ETW trace at C:\\Traces\\WindowsHello.etl and give me a quick summary"</code></li>
+              <li>Apply regions: <code>"Apply the following regions file C:\\Traces\\ModernStandby.Regions.xml and identify the details of CameraOn-To-FaceMode"</code></li>
+              <li>Request CPA: <code>"Look up the critical path analysis of this region and see what they are waiting on"</code></li>
+              <li>Drill deeper: ask for total CPU time by process, top wait reasons for a thread, or optimization recommendations</li>
+            </ol>
+            <div class="kb-insight">
+              <strong>Tip:</strong> Start broad ("what's in this trace?") then narrow down ("what is thread X waiting on?"). Prompt specificity determines response quality.
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 13: Energy Saver A/B Comparison -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('energySaverAB')">
+            <span class="kb-section-title">13. Energy Saver A/B Comparison</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.energySaverAB }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.energySaverAB" class="kb-section-body">
+            <p class="kb-text"><strong>Scenario:</strong> Same Edge launch on same device, only difference is Energy Saver On vs Off. This isolates the PPM (Power Performance Management) impact.</p>
+            <p class="kb-text"><strong>Key comparisons:</strong></p>
+            <table class="kb-table">
+              <thead>
+                <tr><th>Metric</th><th>Energy Saver Off</th><th>Energy Saver On</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Launch duration</td><td>Baseline</td><td>Longer (CPU-bound work stretched)</td></tr>
+                <tr><td>Peak CPU frequency</td><td>Higher, sustained</td><td>Capped / reduced</td></tr>
+                <tr><td>Avg CPU frequency</td><td>Higher</td><td>Lower — PPM throttles scaling</td></tr>
+                <tr><td>Total CPU Usage (ms)</td><td>Baseline</td><td>Similar or higher (same work at lower freq)</td></tr>
+                <tr><td>Ready time</td><td>Lower</td><td>May increase (throttled cores → more queuing)</td></tr>
+              </tbody>
+            </table>
+            <p class="kb-text"><strong>Expected observation:</strong> Under Energy Saver, CPU Usage time on critical path increases (same work runs slower at lower frequency). Wait chain structure usually unchanged — it's the duration of CPU-bound segments that stretches.</p>
+            <p class="kb-text"><strong>Key graphs:</strong> Processor Frequency (most direct PPM indicator), Core Parking (Cap State, Concurrency), CPU Usage (Precise) filtered by process.</p>
+          </div>
+        </div>
+
+        <!-- Section 14: Troubleshooting -->
+        <div class="kb-section">
+          <div class="kb-section-header" @click="toggleKbSection('troubleshooting')">
+            <span class="kb-section-title">14. Troubleshooting</span>
+            <svg :class="['kb-chevron-sm', { expanded: kbSections.troubleshooting }]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div v-if="kbSections.troubleshooting" class="kb-section-body">
+            <table class="kb-table">
+              <thead>
+                <tr><th>Symptom</th><th>Likely Cause</th><th>Resolution</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>WPA or WPR not found in Start menu</td><td>ADK not installed or WPT workload not selected</td><td>Reinstall ADK with Windows Performance Toolkit workload</td></tr>
+                <tr><td>ETL file won't open ("unsupported format")</td><td>Corrupted or incomplete trace</td><td>Re-copy trace; verify file size is non-zero</td></tr>
+                <tr><td>Regions of Interest graph is empty</td><td>WPA profile not applied or wrong profile</td><td>Re-apply: Profiles → Apply → Browse → select correct .wpaProfile</td></tr>
+                <tr><td>Call stacks show memory addresses</td><td>Symbols not loaded</td><td>Trace → Configure Symbol Paths → SymCache → verify path, then Trace → Load Symbols</td></tr>
+                <tr><td>CPU Usage (Precise) shows no data</td><td>Zoomed into wrong time range or process name differs</td><td>Reset zoom, search for process by name in table</td></tr>
+                <tr><td>Copilot Chat not connected</td><td>Internet connectivity or authentication issue</td><td>Check internet; re-sign in via VS Code status bar</td></tr>
+                <tr><td>ETW MCP returns "trace not found"</td><td>Incorrect file path in prompt</td><td>Verify path exactly matches (check for typos)</td></tr>
+                <tr><td>Copilot gives vague analysis</td><td>Prompt too broad</td><td>Be more specific — include process names, thread IDs, time ranges</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -619,6 +776,12 @@ export default {
         cpuPrecise: false,
         syncAsync: false,
         abComparison: false,
+        wat: false,
+        cpaDrillDown: false,
+        starvationPreemption: false,
+        etwMcp: false,
+        energySaverAB: false,
+        troubleshooting: false,
       },
     }
   },
