@@ -257,7 +257,7 @@ func waitForState(s *mgr.Service, desiredState svc.State, timeout time.Duration)
 		if status.State == desiredState {
 			return nil
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 	return fmt.Errorf("timeout waiting for service to reach state %s", serviceStateToString(desiredState))
 }

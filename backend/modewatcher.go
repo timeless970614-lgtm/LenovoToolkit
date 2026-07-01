@@ -29,7 +29,7 @@ type ModeWatcherState struct {
 //     500ms + 5-15ms (IPC round-trip)
 //   - No wasted IPC calls when nothing changed
 func StartModeWatcher(ctx context.Context) {
-	const pollInterval = 200 * time.Millisecond
+	const pollInterval = 100 * time.Millisecond
 
 	var lastState ModeWatcherState
 	firstRun := true
