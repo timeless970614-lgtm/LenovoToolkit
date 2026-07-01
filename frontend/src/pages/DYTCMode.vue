@@ -155,7 +155,9 @@
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
-
+              <button class="tile-pin-btn" :class="{ pinned: pinnedMode === 'EPM' }" @click.stop="togglePin('EPM')" title="Pin this mode">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+              </button>
             </div>
 
             <div 
@@ -176,6 +178,9 @@
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
               </div>
+              <button class="tile-pin-btn" :class="{ pinned: pinnedMode === 'GEEK' }" @click.stop="togglePin('GEEK')" title="Pin this mode">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -490,21 +495,10 @@ export default {
       const pendingMode = this.confirmPendingMode
       try {
         if (window.go && window.go.main && window.go.main.App) {
-          // Send stop command (non-blocking — don't await the full 30s wait)
-          window.go.main.App.StopService().catch(() => {})
-
-          // Poll service status until stopped (max 30s)
-          let stopped = false
-          for (let i = 0; i < 60; i++) {
-            await new Promise(r => setTimeout(r, 500))
-            try {
-              const st = await window.go.main.App.GetServiceStatus()
-              if (st === 'Stopped') { stopped = true; break }
-            } catch (_) {}
-          }
-
-          if (!stopped) {
-            this.showStatus('Service did not stop in time, please try manually', false)
+          // Await StopService (Go handles the wait-for-state internally, up to 30s)
+          const stopResult = await window.go.main.App.StopService()
+          if (stopResult && stopResult.startsWith('Error:')) {
+            this.showStatus(stopResult, false)
             return
           }
 

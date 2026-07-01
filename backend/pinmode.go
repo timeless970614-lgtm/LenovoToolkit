@@ -12,12 +12,12 @@ import (
 // modeToValue maps DYTC mode name to ITS_AutomaticModeSetting value
 var modeToValue = map[string]uint32{
 	"BSM": 1, "IBSM": 2, "AQM": 3, "STD": 4,
-	"APM": 5, "IEPM": 6, "EPM": 7, "DCC": 13,
+	"APM": 5, "IEPM": 6, "EPM": 7, "GEEK": 11, "DCC": 13,
 }
 
 var valueToMode = map[uint32]string{
 	1: "BSM", 2: "IBSM", 3: "AQM", 4: "STD",
-	5: "APM", 6: "IEPM", 7: "EPM", 13: "DCC",
+	5: "APM", 6: "IEPM", 7: "EPM", 11: "GEEK", 13: "DCC",
 }
 
 // GetPinnedDYTCMode returns the currently pinned mode name, or "" if not pinned.
@@ -78,13 +78,21 @@ func PinDYTCMode(modeId string) (string, error) {
 	}
 	log.Printf("[PinMode] Registry set: ITS_AutomaticModeSetting=%d, Policy_Override=3", val)
 
-	// Step 3: Call Set_DYTCMode DLL to actually switch the hardware mode
-	if err := SetDYTCMode(val); err != nil {
-		log.Printf("[PinMode] Warning: SetDYTCMode DLL call failed: %v", err)
-		// Don't return error - registry is already set, DLL may fail on some machines
-		// The mode will still be applied when the service restarts
+	// Step 3: Call the appropriate DLL to actually switch the hardware mode
+	if modeId == "GEEK" {
+		if err := SetGEEKMode(true); err != nil {
+			log.Printf("[PinMode] Warning: SetGEEKMode DLL call failed: %v", err)
+		} else {
+			log.Printf("[PinMode] SetGEEKMode(true) DLL call succeeded")
+		}
 	} else {
-		log.Printf("[PinMode] SetDYTCMode(%d) DLL call succeeded", val)
+		if err := SetDYTCMode(val); err != nil {
+			log.Printf("[PinMode] Warning: SetDYTCMode DLL call failed: %v", err)
+			// Don't return error - registry is already set, DLL may fail on some machines
+			// The mode will still be applied when the service restarts
+		} else {
+			log.Printf("[PinMode] SetDYTCMode(%d) DLL call succeeded", val)
+		}
 	}
 
 	// Step 4: Send ODV33 (UserScenario) to DTT via DYTC CMD DISPATCHERODV1 union

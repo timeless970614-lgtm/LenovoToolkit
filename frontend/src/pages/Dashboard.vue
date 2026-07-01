@@ -21,33 +21,32 @@
             </svg>
           </button>
         </div>
-        <div class="card-content" v-if="sysInfo">
+        <div class="card-content">
           <div class="info-item">
             <span class="info-label">CPU</span>
-            <span class="info-value">{{ sysInfo.CPUName || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:70%"></span><span v-else>{{ sysInfo?.CPUName || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label">BIOS Version</span>
-            <span class="info-value">{{ sysInfo.BIOSVersion || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:55%"></span><span v-else>{{ sysInfo?.BIOSVersion || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label">Operating System</span>
-            <span class="info-value">{{ sysInfo.OSCaption || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:80%"></span><span v-else>{{ sysInfo?.OSCaption || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label">Code Name</span>
-            <span class="info-value">{{ sysInfo.CodeName || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:45%"></span><span v-else>{{ sysInfo?.CodeName || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label">Total Memory</span>
-            <span class="info-value">{{ sysInfo.TotalMemoryGB ? sysInfo.TotalMemoryGB.toFixed(2) + ' GB' : 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:30%"></span><span v-else>{{ sysInfo?.TotalMemoryGB ? sysInfo.TotalMemoryGB.toFixed(2) + ' GB' : 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label">Memory Type</span>
-            <span class="info-value">{{ sysInfo.MemoryType || 'LPDDR5 / DDR5' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:40%"></span><span v-else>{{ sysInfo?.MemoryType || 'LPDDR5 / DDR5' }}</span></span>
           </div>
         </div>
-        <div class="loading" v-else><div class="spinner"></div></div>
       </div>
 
       <!-- Dispatcher Device Information Card -->
@@ -91,21 +90,20 @@
             </button>
           </div>
         </div>
-        <div class="card-content" v-if="deviceInfo">
+        <div class="card-content">
           <div class="info-item">
             <span class="info-label no-transform">Model</span>
-            <span class="info-value">{{ deviceInfo.model || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:60%"></span><span v-else>{{ deviceInfo?.model || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label no-transform">Driver Version</span>
-            <span class="info-value">{{ deviceInfo.driverVersion || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:50%"></span><span v-else>{{ deviceInfo?.driverVersion || 'N/A' }}</span></span>
           </div>
           <div class="info-item">
             <span class="info-label no-transform">AI Engine</span>
-            <span class="info-value">{{ deviceInfo.aiEngineMode || 'N/A' }}</span>
+            <span class="info-value"><span v-if="loading" class="skeleton-text" style="width:35%"></span><span v-else>{{ deviceInfo?.aiEngineMode || 'N/A' }}</span></span>
           </div>
         </div>
-        <div class="loading" v-else><div class="spinner"></div></div>
       </div>
 
       <!-- Service Control Card -->
@@ -154,6 +152,7 @@ export default {
       sysInfo: null,
       deviceInfo: null,
       _timer: null,
+      loading: true,
       enablingLog: false,
       logEnabled: false,
       enablingDump: false,
@@ -173,8 +172,8 @@ export default {
       this._timer = setInterval(this.refresh, this.pollInterval)
     }
   },
-  async mounted() {
-    await this.fullRefresh()
+  mounted() {
+    this.fullRefresh()
     this._timer = setInterval(this.refresh, this.pollInterval)
     // Pause Dashboard polling when page is hidden
     this._visHandler = () => {
@@ -225,6 +224,8 @@ export default {
         }
       } catch (e) {
         console.error('Full refresh error:', e)
+      } finally {
+        this.loading = false
       }
     },
     async startService() {
@@ -417,6 +418,22 @@ export default {
   border-color: var(--lenovo-red);
   color: var(--lenovo-red);
   background: rgba(227, 6, 19, 0.08);
+}
+
+/* Skeleton loading animation */
+.skeleton-text {
+  display: inline-block;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, rgba(255,255,255,0.06) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 </style>

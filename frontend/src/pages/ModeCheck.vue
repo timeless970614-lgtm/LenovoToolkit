@@ -18,12 +18,6 @@
             </svg>
             Fixed Thermal Mode
           </span>
-          <span v-if="pinnedMode" class="pin-badge pinned">
-            📌 {{ pinnedMode }}
-          </span>
-          <span v-else class="pin-badge auto">
-            Auto
-          </span>
           <span class="current-mode-badge" v-if="currentMode && currentMode !== 'N/A'">
             ▶ {{ currentMode }}
           </span>
@@ -341,6 +335,7 @@ export default {
       availableModes: [
         { id: 'BSM', name: 'Battery Saving', group: 'basic' },
         { id: 'EPM', name: 'Extreme Performance', group: 'basic' },
+        { id: 'GEEK', name: 'Geek Mode', group: 'basic' },
         { id: 'IEPM', name: 'Intelligent Extreme', group: 'intelligent' },
         { id: 'DCC', name: 'DCC Mode', group: 'intelligent' },
         { id: 'APM', name: 'Auto Performance Mode', group: 'intelligent' },
@@ -1348,7 +1343,7 @@ export default {
 }
 
 .mode-grid-basic {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .mode-grid-intelligent {
@@ -1434,7 +1429,7 @@ export default {
 
 @media (max-width: 800px) {
   .mode-grid-basic {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   .mode-grid-intelligent {
     grid-template-columns: repeat(2, 1fr);
