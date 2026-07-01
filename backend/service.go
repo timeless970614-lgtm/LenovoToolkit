@@ -170,7 +170,7 @@ func StartService() error {
 	if err := s.Start(); err != nil {
 		return fmt.Errorf("failed to start service: %w", err)
 	}
-	return waitForState(s, svc.Running, 10*time.Second)
+	return waitForState(s, svc.Running, 5*time.Second)
 }
 
 // StopService stops the LenovoProcessManagement service
