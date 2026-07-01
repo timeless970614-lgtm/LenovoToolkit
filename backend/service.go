@@ -117,7 +117,7 @@ func StopService() error {
 	if err != nil {
 		return fmt.Errorf("failed to stop service: %w", err)
 	}
-	return waitForState(s, svc.Stopped, 30*time.Second)
+	return waitForState(s, svc.Stopped, 5*time.Second)
 }
 
 // RestartService restarts the LenovoProcessManagement service

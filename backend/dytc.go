@@ -66,6 +66,12 @@ var (
 // getFuncCapBitmap reads and caches the FUNC_CAP bitmap (bits 16-31 of Get_DYTC_CMD_FUNC_CAP)
 func getFuncCapBitmap() (uint32, bool) {
 	funcCapOnce.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[FUNC_CAP] DLL call failed (procedure not found or driver unavailable): %v", r)
+				// funcCapValid stays false — callers will gracefully allow attempts
+			}
+		}()
 		ret, _, _ := procGetDYTCCmdFuncCap.Call()
 		rawVal := uint32(ret)
 		if rawVal&1 != 0 { // bit 0 = valid
@@ -197,7 +203,13 @@ func SetFanMode(mode uint32) error {
 }
 
 // SetDYTCMode sets the DYTC mode
-func SetDYTCMode(mode uint32) error {
+func SetDYTCMode(mode uint32) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("SetDYTCMode DLL call failed: %v", r)
+			log.Printf("[DYTC] SetDYTCMode panic: %v", r)
+		}
+	}()
 	ret, _, err := procSetDYTCMode.Call(uintptr(mode))
 	if ret == 0 && err != nil {
 		return fmt.Errorf("SetDYTCMode failed: %v", err)
@@ -206,13 +218,24 @@ func SetDYTCMode(mode uint32) error {
 }
 
 // GetCapDCC gets DCC capability
-func GetCapDCC() uint32 {
+func GetCapDCC() (result uint32) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[DYTC] GetCapDCC panic: %v", r)
+		}
+	}()
 	ret, _, _ := procGetCapDCC.Call()
 	return uint32(ret)
 }
 
 // SetGEEKMode sets GEEK mode on/off
-func SetGEEKMode(onoff bool) error {
+func SetGEEKMode(onoff bool) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("SetGEEKMode DLL call failed: %v", r)
+			log.Printf("[DYTC] SetGEEKMode panic: %v", r)
+		}
+	}()
 	var mode uint32
 	if onoff {
 		mode = 1
@@ -225,7 +248,12 @@ func SetGEEKMode(onoff bool) error {
 }
 
 // GetCapGEEK gets GEEK capability
-func GetCapGEEK() uint32 {
+func GetCapGEEK() (result uint32) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[DYTC] GetCapGEEK panic: %v", r)
+		}
+	}()
 	ret, _, _ := procGetCapGEEK.Call()
 	return uint32(ret)
 }
@@ -239,7 +267,13 @@ func GetCapGEEK() uint32 {
 //   CMD_ID = 17 (bits 0-8)
 //   MASK_ODV3x = 1 (bits 12-15 depending on index)
 //   Value_ODV3x = value (4-bit fields at bits 16-31)
-func SetODVMode(index, value uint32) error {
+func SetODVMode(index, value uint32) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("SetODVMode DLL call failed: %v", r)
+			log.Printf("[DYTC] SetODVMode panic: %v", r)
+		}
+	}()
 	var dwIoData uint32
 
 	if index >= 30 && index <= 33 {
@@ -276,25 +310,29 @@ func SetODVMode(index, value uint32) error {
 }
 
 // GetDYTCCmdDispatcherFUNC gets dispatcher function
-func GetDYTCCmdDispatcherFUNC() uint32 {
+func GetDYTCCmdDispatcherFUNC() (result uint32) {
+	defer func() { if r := recover(); r != nil { log.Printf("[DYTC] GetDYTCCmdDispatcherFUNC panic: %v", r) } }()
 	ret, _, _ := procGetDYTCCmdDispatcherFUNC.Call()
 	return uint32(ret)
 }
 
 // GetDYTCCmdFuncCap gets function capability
-func GetDYTCCmdFuncCap() uint32 {
+func GetDYTCCmdFuncCap() (result uint32) {
+	defer func() { if r := recover(); r != nil { log.Printf("[DYTC] GetDYTCCmdFuncCap panic: %v", r) } }()
 	ret, _, _ := procGetDYTCCmdFuncCap.Call()
 	return uint32(ret)
 }
 
 // GetDYTCCmdNITThreshold gets NIT threshold
-func GetDYTCCmdNITThreshold() uint32 {
+func GetDYTCCmdNITThreshold() (result uint32) {
+	defer func() { if r := recover(); r != nil { log.Printf("[DYTC] GetDYTCCmdNITThreshold panic: %v", r) } }()
 	ret, _, _ := procGetDYTCCmdNITThreshold.Call()
 	return uint32(ret)
 }
 
 // GetDYTCCmdNITGet gets NIT value
-func GetDYTCCmdNITGet() uint32 {
+func GetDYTCCmdNITGet() (result uint32) {
+	defer func() { if r := recover(); r != nil { log.Printf("[DYTC] GetDYTCCmdNITGet panic: %v", r) } }()
 	ret, _, _ := procGetDYTCCmdNITGet.Call()
 	return uint32(ret)
 }

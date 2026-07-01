@@ -2,6 +2,9 @@ package main
 
 import (
 	"embed"
+	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -13,8 +16,18 @@ import (
 var assets embed.FS
 
 func main() {
+	// Redirect log output to a file for debugging
+	logDir := filepath.Join(os.Getenv("LOCALAPPDATA"), "LenovoToolkit")
+	os.MkdirAll(logDir, 0755)
+	logFile, err := os.OpenFile(filepath.Join(logDir, "toolkit.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err == nil {
+		log.SetOutput(logFile)
+		defer logFile.Close()
+	}
+	log.Println("=== LenovoToolkit starting ===")
+
 	app := NewApp()
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:     "Lenovo Toolkit",
 		Width:     1150,
 		Height:    750,

@@ -458,13 +458,15 @@ export default {
       this.selectedMode = modeId
     },
     async pinMode() {
+      console.log('[pinMode] clicked, selectedMode=', this.selectedMode)
       if (!this.selectedMode) return
       this.pinning = true
       this.pinResult = null
       
-      // Backend handles: stop service → write registry → call DLL → set Policy_Override=3
       try {
+        console.log('[pinMode] calling PinDYTCMode...')
         const odvMsg = await PinDYTCMode(this.selectedMode)
+        console.log('[pinMode] PinDYTCMode returned:', odvMsg)
         this.pinnedMode = this.selectedMode
         this.pinResult = { success: true, message: `Dispatcher stopped, Mode fixed to ${this.selectedMode} Successfully${odvMsg || ''}` }
       } catch (e) {

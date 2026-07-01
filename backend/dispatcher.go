@@ -51,7 +51,7 @@ func GetDispatcherInfo() (DispatcherInfo, error) {
 		return info, nil
 	}
 	// ITS_CurrentSetting: actual hardware mode from DTT driver
-	// ITS_AutomaticModeSetting: target mode set by Dispatcher
+	// ITS_AutomaticModeSetting: target mode set by Dispatcher (used as primary source for currentMode)
 	itsCurrent := values["ITS_CurrentSetting"]
 	itsTarget := values["ITS_AutomaticModeSetting"]
 
@@ -71,10 +71,10 @@ func GetDispatcherInfo() (DispatcherInfo, error) {
 		info.ITSTargetMode = fmt.Sprintf("Unknown (%d)", itsTarget)
 	}
 
-	// Use ITS_CurrentSetting when available, fallback to ITS_AutomaticModeSetting
-	currentSetting := itsCurrent
+	// Use ITS_AutomaticModeSetting (Dispatcher target mode) when available, fallback to ITS_CurrentSetting (DTT hardware mode)
+	currentSetting := itsTarget
 	if currentSetting == 0 {
-		currentSetting = itsTarget
+		currentSetting = itsCurrent
 	}
 	if modeName, ok := dispatcherModeMap[currentSetting]; ok {
 		info.CurrentMode = fmt.Sprintf("%s (%d)", modeName, currentSetting)
