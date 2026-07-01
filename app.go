@@ -395,6 +395,11 @@ func (a *App) GetModeCheckInfo() backend.ModeCheckInfo {
 	return backend.GetModeCheckInfo()
 }
 
+// GetModeCheckPageData returns all ModeCheck page data in one IPC call
+func (a *App) GetModeCheckPageData() backend.ModeCheckPageData {
+	return backend.GetModeCheckPageData()
+}
+
 // ============ Pin Mode ============
 
 // GetPinnedDYTCMode returns the currently pinned mode name, or "" if not pinned

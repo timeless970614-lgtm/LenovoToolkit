@@ -316,7 +316,7 @@
 </template>
 
 <script>
-import { GetModeCheckInfo, GetServiceStatus, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, GetServiceAndModeInfo, StartService, StopService, UninstallDTT, UninstallDTTUI, InstallDTTUI } from '../../wailsjs/go/main/App'
+import { GetModeCheckPageData, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, GetServiceAndModeInfo, StartService, StopService, UninstallDTT, UninstallDTTUI, InstallDTTUI } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
 export default {
@@ -411,44 +411,38 @@ export default {
       this.loading = true
       try {
         if (window.go && window.go.main && window.go.main.App) {
-          const [info, status, pinned, dispatcher] = await Promise.all([
-            GetModeCheckInfo(),
-            GetServiceStatus(),
-            GetPinnedDYTCMode(),
-            GetDispatcherInfo(),
-          ])
-          this.info = info
-          this.serviceStatus = status
-          this.pinnedMode = pinned || ''
-          if (dispatcher) {
-            // Use AutoMode directly (ITS_CurrentSetting with fallback to ITS_AutomaticModeSetting)
-            const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
-            if (dispatcher.autoMode !== undefined && dispatcher.autoMode !== 0) {
-              this.currentMode = numToMode[dispatcher.autoMode] || ('Unknown(' + dispatcher.autoMode + ')')
-            } else if (dispatcher.currentMode) {
-              const raw = dispatcher.currentMode
-              const numMatch = raw.match(/\((\d+)\)$/)
-              if (numMatch) {
-                const num = parseInt(numMatch[1])
-                this.currentMode = numToMode[num] || raw
+          // Single IPC call — replaces 4 parallel calls
+          const pageData = await GetModeCheckPageData()
+          if (pageData) {
+            this.info = pageData.modeCheckInfo
+            this.serviceStatus = pageData.serviceStatus
+            this.pinnedMode = pageData.pinnedMode || ''
+            const dispatcher = pageData.dispatcher
+            if (dispatcher) {
+              const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
+              if (dispatcher.autoMode !== undefined && dispatcher.autoMode !== 0) {
+                this.currentMode = numToMode[dispatcher.autoMode] || ('Unknown(' + dispatcher.autoMode + ')')
+              } else if (dispatcher.currentMode) {
+                const raw = dispatcher.currentMode
+                const numMatch = raw.match(/\((\d+)\)$/)
+                if (numMatch) {
+                  const num = parseInt(numMatch[1])
+                  this.currentMode = numToMode[num] || raw
+                } else {
+                  this.currentMode = raw
+                }
               } else {
-                this.currentMode = raw
+                this.currentMode = 'N/A'
               }
+              this.itsCurrentMode = dispatcher.itsCurrentMode || 'N/A (DTT not active)'
+              this.itsTargetMode = dispatcher.itsTargetMode || 'N/A'
             } else {
               this.currentMode = 'N/A'
             }
-          } else {
-            this.currentMode = 'N/A'
-          }
-
-          // Populate ITS mode fields from dispatcher info
-          if (dispatcher) {
-            this.itsCurrentMode = dispatcher.itsCurrentMode || 'N/A (DTT not active)'
-            this.itsTargetMode = dispatcher.itsTargetMode || 'N/A'
-          }
-          // Also read ITS values from ModeCheckInfo for raw values
-          if (info) {
-            this.itsFanMode = info.itsFanMode || 0
+            // Read ITS FanMode from ModeCheckInfo
+            if (pageData.modeCheckInfo) {
+              this.itsFanMode = pageData.modeCheckInfo.itsFanMode || 0
+            }
           }
         }
       } catch (e) {

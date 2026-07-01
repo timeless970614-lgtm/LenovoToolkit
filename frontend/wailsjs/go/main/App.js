@@ -242,6 +242,10 @@ export function GetModeCheckInfo() {
   return window['go']['main']['App']['GetModeCheckInfo']();
 }
 
+export function GetModeCheckPageData() {
+  return window['go']['main']['App']['GetModeCheckPageData']();
+}
+
 export function GetNPOSchedulerSettings() {
   return window['go']['main']['App']['GetNPOSchedulerSettings']();
 }

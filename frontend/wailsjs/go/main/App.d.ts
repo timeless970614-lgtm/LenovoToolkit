@@ -123,6 +123,8 @@ export function GetMLLogStatus():Promise<backend.MLLogStatus>;
 
 export function GetModeCheckInfo():Promise<backend.ModeCheckInfo>;
 
+export function GetModeCheckPageData():Promise<backend.ModeCheckPageData>;
+
 export function GetNPOSchedulerSettings():Promise<backend.NPOSchedulerSettings>;
 
 export function GetNPOSchedulerState():Promise<backend.NPOSchedulerState>;

@@ -46,6 +46,44 @@ type ModeCheckFeature struct {
 	Support string `json:"support"`
 }
 
+// ModeCheckPageData aggregates all data needed for the ModeCheck page in one call.
+// This replaces 4 separate Wails IPC calls with a single round-trip.
+type ModeCheckPageData struct {
+	ModeCheckInfo  ModeCheckInfo  `json:"modeCheckInfo"`
+	ServiceStatus  string         `json:"serviceStatus"`
+	PinnedMode     string         `json:"pinnedMode"`
+	Dispatcher     DispatcherInfo `json:"dispatcher"`
+}
+
+// GetModeCheckPageData returns all ModeCheck page data in one call
+func GetModeCheckPageData() ModeCheckPageData {
+	return ModeCheckPageData{
+		ModeCheckInfo:  GetModeCheckInfo(),
+		ServiceStatus:  getCachedServiceStatus(),
+		PinnedMode:     GetPinnedDYTCMode(),
+		Dispatcher:     getDispatcherInfoFast(),
+	}
+}
+
+// getCachedServiceStatus returns service status using cached SCM handle
+func getCachedServiceStatus() string {
+	_, svc, err := getSCMService()
+	if err != nil {
+		return "Not Installed"
+	}
+	status, err := svc.Query()
+	if err != nil {
+		return "Error"
+	}
+	return serviceStateToString(status.State)
+}
+
+// getDispatcherInfoFast returns DispatcherInfo using cached registry key
+func getDispatcherInfoFast() DispatcherInfo {
+	info, _ := GetDispatcherInfo()
+	return info
+}
+
 // GetModeCheckInfo returns all mode check information (pure registry, no DLL calls)
 func GetModeCheckInfo() ModeCheckInfo {
 	info := ModeCheckInfo{}
