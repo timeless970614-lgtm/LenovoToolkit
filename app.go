@@ -25,6 +25,8 @@ func NewApp() *App {
 // startup is called when the app starts. The context is saved
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Start background mode/service watcher — pushes changes to frontend via events
+	go backend.StartModeWatcher(ctx)
 }
 
 // ============ System Info ============

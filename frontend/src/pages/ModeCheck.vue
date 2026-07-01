@@ -316,7 +316,8 @@
 </template>
 
 <script>
-import { GetModeCheckInfo, GetServiceStatus, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, StartService, StopService, UninstallDTT, UninstallDTTUI, InstallDTTUI } from '../../wailsjs/go/main/App'
+import { GetModeCheckInfo, GetServiceStatus, GetPinnedDYTCMode, PinDYTCMode, UnpinDYTCMode, GetDispatcherInfo, GetServiceAndModeInfo, StartService, StopService, UninstallDTT, UninstallDTTUI, InstallDTTUI } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 
 export default {
   name: 'ModeCheck',
@@ -327,6 +328,7 @@ export default {
       serviceStatus: 'Unknown',
       serviceRunning: false,
       serviceInterval: null,
+      modeEventUnsub: null,
       pinnedMode: '',
       currentMode: 'N/A',
       selectedMode: '',
@@ -386,7 +388,8 @@ export default {
       return fanModes[this.itsFanMode] || `Unknown (${this.itsFanMode})`
     },
     pollInterval() {
-      // Poll every 500ms — ultra-responsive Current Mode feedback
+      // No longer used for polling — backend pushes via Wails events
+      // Kept for compatibility with watch/startServiceWatcher fallback
       return 500
     }
   },
@@ -527,17 +530,31 @@ export default {
     },
     
     startServiceWatcher() {
-      // Poll every 3 seconds
-      this.serviceInterval = setInterval(() => this.pollServiceAndMode(), this.pollInterval)
-      // Initial poll
+      // Listen for backend-pushed mode/service state changes (200ms poll, emit on change only)
+      this.modeEventUnsub = EventsOn('mode:state-change', (state) => {
+        this.applyModeState(state)
+      })
+      // Also do an immediate poll for instant display
       this.pollServiceAndMode()
     },
     
     stopServiceWatcher() {
-      if (this.serviceInterval) {
-        clearInterval(this.serviceInterval)
-        this.serviceInterval = null
+      if (this.modeEventUnsub) {
+        EventsOff('mode:state-change')
+        this.modeEventUnsub = null
       }
+    },
+
+    // Apply state pushed from backend (via Wails event)
+    applyModeState(state) {
+      if (!state) return
+      this.serviceRunning = (state.serviceStatus || '').toLowerCase().includes('running')
+      const numToMode = { 1: 'BSM', 2: 'IBSM', 3: 'AQM', 4: 'STD', 5: 'APM', 6: 'IEPM', 7: 'EPM', 8: 'Tablet', 9: 'Tent', 10: 'Flat', 11: 'GEEK' }
+      if (state.autoMode !== undefined && state.autoMode !== 0) {
+        this.currentMode = numToMode[state.autoMode] || ('Unknown(' + state.autoMode + ')')
+      }
+      if (state.itsCurrentMode) this.itsCurrentMode = state.itsCurrentMode
+      if (state.itsTargetMode) this.itsTargetMode = state.itsTargetMode
     },
 
     async uninstallDTT() {
