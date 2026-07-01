@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"golang.org/x/sys/windows/registry"
+	"golang.org/x/sys/windows/svc"
 )
 
 // callWithTimeout runs f in a goroutine and returns after timeout if f hasn't finished.
@@ -203,27 +204,35 @@ func UnpinDYTCMode() (err error) {
 		log.Printf("[PinMode] SetODVMode(33, 0) succeeded - ODV33 UserScenario reset to 0")
 	}
 
-	// Step 3: Start Dispatcher service so it resumes auto mode switching
+	// Step 3: Start Dispatcher service (non-blocking — ModeWatcher will detect Running state
+	// within 200ms and push to frontend via event)
 	if !isDispatcherRunning() {
 		log.Printf("[PinMode] Starting Dispatcher service for auto mode...")
-		if err := startDispatcherService(); err != nil {
-			log.Printf("[PinMode] Warning: failed to start Dispatcher service: %v", err)
-		} else {
-			log.Printf("[PinMode] Dispatcher service started, auto mode switching resumed")
-		}
+		go func() {
+			if err := startDispatcherService(); err != nil {
+				log.Printf("[PinMode] Warning: failed to start Dispatcher service: %v", err)
+			} else {
+				log.Printf("[PinMode] Dispatcher service started, auto mode switching resumed")
+			}
+		}()
+		log.Printf("[PinMode] Dispatcher service start initiated (async)")
 	}
 
 	return nil
 }
 
-// isDispatcherRunning checks if the Lenovo Dispatcher service is currently running
+// isDispatcherRunning checks if the Lenovo Dispatcher service is currently running.
+// Uses cached SCM handle for speed.
 func isDispatcherRunning() bool {
-	status, err := GetServiceStatus()
+	_, svcHandle, err := getSCMService()
 	if err != nil {
-		log.Printf("[PinMode] Warning: failed to query service status: %v", err)
 		return false
 	}
-	return status == "Running"
+	status, err := svcHandle.Query()
+	if err != nil {
+		return false
+	}
+	return status.State == svc.Running
 }
 
 // stopDispatcherService stops the Lenovo Dispatcher service
